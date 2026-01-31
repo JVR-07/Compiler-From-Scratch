@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "symbols.h"
+#include "lexer.h"
 
 #define MAX_SYMBOLS 100
 
@@ -42,11 +43,10 @@ void print_symbol_table() {
     printf("%-5s | %-20s | %-15s\n", "ID", "LEXEMA", "TIPO");
     printf("----------------------------------------------\n");
     for (int i = 0; i < symbol_count; i++) {
-        // implementar funcion para convertir el enum en el string del tokentype
-        printf("%-5d | %-20s | %d\n", 
+        printf("%-5d | %-20s | %s\n", 
             symbol_table[i].id, 
             symbol_table[i].lexeme, 
-            symbol_table[i].type);
+            token_type_to_str(symbol_table[i].type));
     }
     printf("----------------------------------------------\n");
 }
