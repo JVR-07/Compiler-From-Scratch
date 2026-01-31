@@ -1,10 +1,10 @@
 CC = gcc
-CFLAGS = -Wall -Wextra -g -Iinclude
-SRC_DIR = /src
-OBJ_DIR = /obj
-BIN_DIR = /bin
+CFLAGS = -Wall -Wextra -g -Iinclude/
+SRC_DIR = src/
+OBJ_DIR = obj/
+BIN_DIR = bin/
 
-TARGET = $(BIN_DIR)/file-name
+TARGET = $(BIN_DIR)/Compiler
 
 
 SRCS = $(wildcard $(SRC_DIR)/*.h) $(wildcard $(SRC_DIR)/*.c)
