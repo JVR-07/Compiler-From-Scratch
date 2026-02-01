@@ -1,4 +1,7 @@
+# Compiler From Scratch
+
 ![Wallpaper](https://raw.githubusercontent.com/JVR-07/College-Projects/refs/heads/main/Resource/wallpaper_itt.png)
+
 ---
 
 **Autor:** Javier Machado Sánchez
@@ -9,7 +12,7 @@
   
 **Profesor:** Erasmo Estrada Peña.
 
-# Compilador Básico
+## Compilador Básico
 
 Este es un proyecto con fines educativos para crear un compilador desde cero, implementando cada una de sus fases.
 
