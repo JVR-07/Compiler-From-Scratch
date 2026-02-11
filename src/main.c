@@ -32,7 +32,7 @@ int main(int argc, char *argv[]) {
             if (t.type == TKN_IDENTIFIER || 
                 t.type == TKN_LIT_INT || 
                 t.type == TKN_LIT_FLOAT || 
-                t.type == TKN_STRING) {
+                t.type == TKN_LIT_STRING) {
                 
                 int id = install_symbol(t.lexeme, t.type);
                 
@@ -48,9 +48,11 @@ int main(int argc, char *argv[]) {
             }
         } else if (t.type == TKN_ERROR) {
             printf("ERROR: Caracter desconocido en linea %d: %s\n", t.line, t.lexeme);
+        } else if (t.type == TKN_EOF) {
+            printf("Fin de archivo alcanzado.\n");
         }
         
-    } while (t.type != TKN_EOF);
+    } while (t.type != TKN_EOF || t.type == TKN_ERROR);
 
     print_symbol_table();
 
