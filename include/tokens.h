@@ -12,6 +12,10 @@ typedef enum {
     TKN_IDENTIFIER, 
     TKN_LIT_INT, 
     TKN_LIT_FLOAT,
+    TKN_LIT_STRING,
+    TKN_LIT_TRUE,
+    TKN_LIT_FALSE,
+    
 
     // Operadores
     TKN_PLUS, 
@@ -25,6 +29,8 @@ typedef enum {
     TKN_LESS,
     TKN_LESS_EQUAL,
     TKN_NOT_EQUAL,
+    TKN_SELF_PLUS,
+    TKN_SELF_MINUS,
 
     // Cuerpos y bloques
     TKN_SEMICOLON,
@@ -32,15 +38,19 @@ typedef enum {
     TKN_RPAREN,
     TKN_LBRACE,
     TKN_RBRACE,
+    TKN_COMMA,
 
     // Estructuras de control y ciclos
     TKN_IF,
-    TKN_SWITCH,
+    TKN_FOR,
     TKN_WHILE,
 
     // I/O
-    TKN_PRINT,
+    TKN_WRITE,
     TKN_READ,
+
+    // Procedimiento
+    TKN_PROC,
 
     // Control
     TKN_EOF,
