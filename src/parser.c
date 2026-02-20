@@ -3,24 +3,65 @@
 #include "parser.h"
 #include "symbols.h"
 
+// Inicializar el parser
 void init_parser(Parser *p, Lexer *l) {
     p->lexer = l;
     p->has_error = 0;
-    advance(p); // Pre-carga del primer token
+    advance(p); // Pre-cargar el primer token
 }
 
+// Cargar el siguiene token
 void advance(Parser *p) {
     p->current_token = next_token(p->lexer);
 }
 
+// Mostrar error del parser
 void parser_error(Parser *p, const char *message) {
-    printf("Error Sintactico (Linea %d): %s. Token encontrado: '%s'\n", 
+    //printf("Error Sintactico (Linea %d): %s. Token encontrado: '%s'\n", 
+    //       p->current_token.line, 
+    //       message, 
+    //       p->current_token.lexeme);
+    printf("\033[1;31mError Sintáctico\033[0m [Línea %d]: %s. Cerca de: '%s'\n", 
            p->current_token.line, 
            message, 
            p->current_token.lexeme);
     p->has_error = 1;
 }
 
+// Sincronizar parser despues de encontrar un errror
+void synchronize(Parser *p) {
+    p->has_error = 0; 
+
+    while (p->current_token.type != TKN_EOF) {
+        // En caso de encontrar punto y coma, significa que ya esta sincronizado el parser
+        if (p->current_token.type == TKN_SEMICOLON) {
+            advance(p);
+            return;
+        }
+
+        // Buscar un token que inicie una nueva instruccion para sincronizar el parser
+        switch (p->current_token.type) {
+            case TKN_INT:
+            case TKN_FLOAT:
+            case TKN_STRING:
+            case TKN_BOOL:
+            case TKN_IF:
+            case TKN_FOR:
+            case TKN_WHILE:
+            case TKN_PROC:
+            case TKN_WRITE:
+            case TKN_READ:
+            case TKN_RBRACE:
+                return;
+
+            default:
+                advance(p); // Descarta tokens que no sean el inicio de una nueva instruccion
+                break;
+        }
+    }
+}
+
+// Verificar si el token actual es el esperado
 int match(Parser *p, tokenType expected) {
     if (p->current_token.type == expected) {
         advance(p);
@@ -33,11 +74,16 @@ int match(Parser *p, tokenType expected) {
     }
 }
 
+// Punto de entrada del parser
 // PROGRAMA -> INSTRUCCION*
 void parse_program(Parser *p) {
     printf("\n=== INICIANDO ANALISIS SINTACTICO ===\n");
     while (p->current_token.type != TKN_EOF && !p->has_error) {
         parse_instruction(p);
+
+        if(p->has_error) {
+            synchronize(p);
+        }
     }
     if (!p->has_error) {
         printf("Analisis Sintactico completado sin errores.\n");
@@ -221,6 +267,9 @@ void parse_block(Parser *p) {
     match(p, TKN_LBRACE);
     while (p->current_token.type != TKN_RBRACE && p->current_token.type != TKN_EOF && !p->has_error) {
         parse_instruction(p);
+        if(p->has_error) {
+            synchronize(p);
+        }
     }
     match(p, TKN_RBRACE);
 }
@@ -293,6 +342,7 @@ void parse_factor(Parser *p) {
     }
 }
 
+// --- COMENZAR PARSER ---
 void parse(Parser *p) {
     parse_program(p);
 }
