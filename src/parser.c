@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include "parser.h"
 #include "symbols.h"
+#include "ast.h"
 
 // Inicializar el parser
 void init_parser(Parser *p, Lexer *l) {
@@ -156,7 +157,11 @@ void parse_declaration(Parser *p) {
     
     if (p->current_token.type == TKN_ASSIGN) {
         advance(p);
-        parse_expression(p);
+        ASTNode *node = parse_expression(p);
+
+        // Imprimir arbol de expresiones
+        printf("\n--> Arbol de expresiones:\n");
+        print_ast(node, 0, "ROOT");
     }
 }
 
@@ -166,7 +171,12 @@ void parse_assignment_or_unary(Parser *p) {
     
     if (p->current_token.type == TKN_ASSIGN) {
         advance(p);
-        parse_expression(p);
+        ASTNode *node = parse_expression(p);
+
+        // Imprimir arbol de expresiones en asignacion
+        printf("\n--> Arbol de expresiones en asignación:\n");
+        print_ast(node, 0, "ROOT");
+
     } else if (p->current_token.type == TKN_SELF_PLUS || p->current_token.type == TKN_SELF_MINUS) {
         advance(p);
     } else {
@@ -185,7 +195,7 @@ void parse_read(Parser *p) {
 // SALIDA -> write + EXPRESION
 void parse_write(Parser *p) {
     match(p, TKN_WRITE);
-    parse_expression(p);
+    ASTNode *node = parse_expression(p);
 }
 
 // FOR -> for + DECLARACION/ASIGNACION , OPERACION_LOGICA , OPERACION_UNARIA + CUERPO
@@ -276,13 +286,13 @@ void parse_block(Parser *p) {
 
 // OPERACION_LOGICA -> EXPRESION + ( > | < | == | != | >= | <= ) + EXPRESION
 void parse_logical_expression(Parser *p) {
-    parse_expression(p);
+    ASTNode *node1 = parse_expression(p);
 
     if (p->current_token.type == TKN_GREATER || p->current_token.type == TKN_LESS || 
         p->current_token.type == TKN_GREATER_EQUAL || p->current_token.type == TKN_LESS_EQUAL || 
         p->current_token.type == TKN_EQUAL || p->current_token.type == TKN_NOT_EQUAL) {
         advance(p);
-        parse_expression(p);
+        ASTNode *node2 = parse_expression(p);
     } else {
         parser_error(p, "Se esperaba operador relacional");
     }
@@ -306,40 +316,55 @@ void parse_unary_operation(Parser *p) {
 // --- JERARQUIA DE EXPRESIONES ARITMETICAS ---
 
 // EXPRESION -> TERMINO ( (+|-) TERMINO )*
-void parse_expression(Parser *p) {
-    parse_term(p);
+ASTNode* parse_expression(Parser *p) {
+    ASTNode *node = parse_term(p);
+
     while (p->current_token.type == TKN_PLUS || p->current_token.type == TKN_MINUS) {
+       token op = p->current_token;
         advance(p);
-        parse_term(p);
+        
+        node = create_binary_node(op, node, parse_term(p));
     }
+    return node;
 }
 
 // TERMINO -> FACTOR ( (*|/) FACTOR )*
-void parse_term(Parser *p) {
-    parse_factor(p);
+ASTNode* parse_term(Parser *p) {
+    ASTNode* node = parse_factor(p);
+
     while (p->current_token.type == TKN_MULT || p->current_token.type == TKN_DIV) {
+        token op = p->current_token;
         advance(p);
-        parse_factor(p);
+        node = create_binary_node(op, node, parse_factor(p));
     }
+    return node;
 }
 
 // FACTOR -> LITARAL | IDENTIFICADOR | ( EXPRESION )
-void parse_factor(Parser *p) {
-    if (p->current_token.type == TKN_LIT_INT || 
-        p->current_token.type == TKN_LIT_FLOAT || 
-        p->current_token.type == TKN_LIT_STRING || 
-        p->current_token.type == TKN_LIT_TRUE || 
-        p->current_token.type == TKN_LIT_FALSE || 
-        p->current_token.type == TKN_IDENTIFIER) {
-        install_symbol(p->current_token.lexeme, p->current_token.type);
+ASTNode* parse_factor(Parser *p) {
+    token t = p->current_token;
+
+    if (t.type == TKN_LIT_INT || 
+        t.type == TKN_LIT_FLOAT || 
+        t.type == TKN_LIT_STRING || 
+        t.type == TKN_LIT_TRUE || 
+        t.type == TKN_LIT_FALSE || 
+        t.type == TKN_IDENTIFIER) {
+        
+        NodeType node_type = (t.type == TKN_IDENTIFIER) ? NODE_IDENTIFIER : NODE_LITERAL;
+        
+        install_symbol(t.lexeme, t.type);
         advance(p);
-    } else if (p->current_token.type == TKN_LPAREN) {
+        return create_node(node_type, t);
+    } else if (t.type == TKN_LPAREN) {
         advance(p);
-        parse_expression(p);
+        ASTNode *node = parse_expression(p);
         match(p, TKN_RPAREN);
-    } else {
-        parser_error(p, "Expresion mal formada");
+        return node;
     }
+
+    parser_error(p, "Expresión mal formada o factor no esperado");
+    return NULL;
 }
 
 // --- COMENZAR PARSER ---

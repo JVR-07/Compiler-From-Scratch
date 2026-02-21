@@ -3,12 +3,13 @@
 
 #include "lexer.h"
 #include "tokens.h"
+#include "ast.h"
 
 // Estructura principal del Parser
 typedef struct {
     Lexer *lexer;
     token current_token;
-    int has_error; // Bandera para saber si la compilacion fallo
+    int has_error;
 } Parser;
 
 // Funciones de inicializacion y control
@@ -17,6 +18,7 @@ void parse(Parser *p);
 void advance(Parser *p);
 int match(Parser *p, tokenType expected);
 void parser_error(Parser *p, const char *message);
+void synchronize(Parser *p);
 
 // Reglas principales
 void parse_program(Parser *p);
@@ -39,8 +41,8 @@ void parse_parameters(Parser *p);
 // Operaciones y expresiones lógicas/aritméticas
 void parse_logical_expression(Parser *p);
 void parse_unary_operation(Parser *p);
-void parse_expression(Parser *p);
-void parse_term(Parser *p);
-void parse_factor(Parser *p);
+ASTNode* parse_expression(Parser *p);
+ASTNode* parse_term(Parser *p);
+ASTNode* parse_factor(Parser *p);
 
 #endif
