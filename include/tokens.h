@@ -22,6 +22,7 @@ typedef enum {
     TKN_MINUS,
     TKN_MULT,
     TKN_DIV,
+    TKN_POWER,
     TKN_ASSIGN,
     TKN_EQUAL,
     TKN_GREATER,

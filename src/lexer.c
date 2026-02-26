@@ -32,12 +32,10 @@ static void unget_char(Lexer *l) {
 }
 
 token next_token(Lexer *l) {
-    // Iniciar estructura de token
     token t;
     t.lexeme[0] = '\0';
     t.line = l->line_num;
 
-    // Inicializar c con el primer caracter del input
     int c = get_char(l);
 
     while (isspace(c)) {
@@ -162,6 +160,7 @@ handle_operators:
 
         case '*': t.type = TKN_MULT; break;
         case '/': t.type = TKN_DIV; break;
+        case '^': t.type = TKN_POWER; break;
         case ';': t.type = TKN_SEMICOLON; break;
         case '(': t.type = TKN_LPAREN; break;
         case ')': t.type = TKN_RPAREN; break;
@@ -229,6 +228,7 @@ const char* token_type_to_str(tokenType t) {
         case TKN_SELF_MINUS: return "SELF_MINUS";
         case TKN_MULT: return "MULTI";
         case TKN_DIV: return "DIVISION";
+        case TKN_POWER: return "POWER";
         case TKN_ASSIGN: return "ASSIGN";
         case TKN_EQUAL: return "EQUAL";
         case TKN_GREATER: return "GREATER";
