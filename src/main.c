@@ -5,7 +5,7 @@
 
 int main(int argc, char *argv[]) {
     if (argc < 2) {
-        printf("Uso: %s <archivo_fuente>\n", argv[0]);
+        printf("Formato: %s <archivo_fuente>\n", argv[0]);
         return 1;
     }
 
