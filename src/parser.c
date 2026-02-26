@@ -4,24 +4,17 @@
 #include "symbols.h"
 #include "ast.h"
 
-// Inicializar el parser
 void init_parser(Parser *p, Lexer *l) {
     p->lexer = l;
     p->has_error = 0;
-    advance(p); // Pre-cargar el primer token
+    advance(p);
 }
 
-// Cargar el siguiene token
 void advance(Parser *p) {
     p->current_token = next_token(p->lexer);
 }
 
-// Mostrar error del parser
 void parser_error(Parser *p, const char *message) {
-    //printf("Error Sintactico (Linea %d): %s. Token encontrado: '%s'\n", 
-    //       p->current_token.line, 
-    //       message, 
-    //       p->current_token.lexeme);
     printf("\033[1;31mError Sintáctico\033[0m [Línea %d]: %s. Cerca de: '%s'\n", 
            p->current_token.line, 
            message, 
@@ -29,7 +22,6 @@ void parser_error(Parser *p, const char *message) {
     p->has_error = 1;
 }
 
-// Sincronizar parser despues de encontrar un errror
 void synchronize(Parser *p) {
     p->has_error = 0; 
 
@@ -62,7 +54,6 @@ void synchronize(Parser *p) {
     }
 }
 
-// Verificar si el token actual es el esperado
 int match(Parser *p, tokenType expected) {
     if (p->current_token.type == expected) {
         advance(p);
@@ -93,7 +84,6 @@ void parse_program(Parser *p) {
     }
 }
 
-// Enrutador de instrucciones
 void parse_instruction(Parser *p) {
     switch (p->current_token.type) {
         // 1. Declaracion de variables
@@ -159,8 +149,7 @@ void parse_declaration(Parser *p) {
         advance(p);
         ASTNode *node = parse_expression(p);
 
-        // Imprimir arbol de expresiones
-        printf("\n--> Arbol de expresiones:\n");
+        printf("\n--> Arbol de expresiones en asignación:\n");
         print_ast(node, 0, "ROOT");
     }
 }
@@ -173,7 +162,6 @@ void parse_assignment_or_unary(Parser *p) {
         advance(p);
         ASTNode *node = parse_expression(p);
 
-        // Imprimir arbol de expresiones en asignacion
         printf("\n--> Arbol de expresiones en asignación:\n");
         print_ast(node, 0, "ROOT");
 
@@ -330,9 +318,21 @@ ASTNode* parse_expression(Parser *p) {
 
 // TERMINO -> FACTOR ( (*|/) FACTOR )*
 ASTNode* parse_term(Parser *p) {
-    ASTNode* node = parse_factor(p);
+    ASTNode* node = parse_power(p);
 
     while (p->current_token.type == TKN_MULT || p->current_token.type == TKN_DIV) {
+        token op = p->current_token;
+        advance(p);
+        node = create_binary_node(op, node, parse_power(p));
+    }
+    return node;
+}
+
+// POTENCIA -> FACTOR ( (^) FACTOR )*
+ASTNode* parse_power(Parser *p) {
+    ASTNode* node = parse_factor(p);
+
+    while (p->current_token.type == TKN_POWER) {
         token op = p->current_token;
         advance(p);
         node = create_binary_node(op, node, parse_factor(p));

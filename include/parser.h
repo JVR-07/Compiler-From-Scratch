@@ -5,7 +5,6 @@
 #include "tokens.h"
 #include "ast.h"
 
-// Estructura principal del Parser
 typedef struct {
     Lexer *lexer;
     token current_token;
@@ -43,6 +42,7 @@ void parse_logical_expression(Parser *p);
 void parse_unary_operation(Parser *p);
 ASTNode* parse_expression(Parser *p);
 ASTNode* parse_term(Parser *p);
+ASTNode* parse_power(Parser *p);
 ASTNode* parse_factor(Parser *p);
 
 #endif
