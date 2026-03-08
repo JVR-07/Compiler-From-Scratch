@@ -21,8 +21,8 @@ Este es un proyecto con fines educativos para crear un compilador desde cero, im
 El compilador se desarrollará en 5 fases principales:
 
 1. **Análisis Léxico:** Completado.
-2. **Análisis Sintáctico:** En desarrollo.
-3. **Análisis Semántico:** Pendiente.
+2. **Análisis Sintáctico:** Completado.
+3. **Análisis Semántico:** En desarollo.
 4. **Generación de Código Intermedio:** Pendiente.
 5. **Optimización de Código:** Pendiente.
 
