@@ -18,6 +18,7 @@ void exit_scope();
 
 int install_symbol(const char *lexeme, tokenType type, tokenType data_type);
 int lookup_symbol(const char *lexeme);
+tokenType get_symbol_type(int id);
 void print_symbol_table();
 
 #endif
