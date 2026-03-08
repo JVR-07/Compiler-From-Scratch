@@ -6,12 +6,18 @@
 typedef struct {
     int id;
     char lexeme[100];
-    tokenType type;
+    tokenType type;      // Para TKN_IDENTIFIER
+    tokenType data_type; // Para el tipo semantico: TKN_INT, TKN_FLOAT, etc.
+    int scope_level;
 } symbol;
 
 void init_symbol_table();
 
-int install_symbol(const char *lexeme, tokenType type);
+void enter_scope();
+void exit_scope();
+
+int install_symbol(const char *lexeme, tokenType type, tokenType data_type);
+int lookup_symbol(const char *lexeme);
 void print_symbol_table();
 
 #endif
