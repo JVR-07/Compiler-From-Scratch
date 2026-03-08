@@ -1,0 +1,156 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include "semantic.h"
+#include "symbols.h"
+#include "lexer.h"
+
+int semantic_errors = 0;
+
+void semantic_error(int line, const char *message, const char *lexeme) {
+    if (lexeme)
+        printf("\033[1;31mError Semántico\033[0m [Línea %d]: %s '%s'\n", line, message, lexeme);
+    else
+        printf("\033[1;31mError Semántico\033[0m [Línea %d]: %s\n", line, message);
+    semantic_errors++;
+}
+
+void validate_node(ASTNode *node) {
+    if (!node) return;
+
+    int is_scope = 0;
+    if (node->type == NODE_BLOCK || node->type == NODE_FOR || node->type == NODE_PROC_DECL) {
+        is_scope = 1;
+        enter_scope();
+    }
+
+    // Recorrido Post-fix (hijos primero) para bottom-up eval
+    validate_node(node->left);
+    validate_node(node->right);
+    validate_node(node->condition);
+    validate_node(node->increment);
+    validate_node(node->body);
+    
+    switch (node->type) {
+        case NODE_PROGRAM:
+        case NODE_BLOCK:
+        case NODE_READ:
+        case NODE_WRITE:
+            // Sin inferencia compleja acá
+            break;
+
+        case NODE_VAR_DECL:
+        case NODE_PROC_DECL:
+            // Estos nodos insertan su propio tipo durante el parseo.
+            // Opcionalmente podemos validar parámetros de PROC_DECL
+            break;
+
+        case NODE_IDENTIFIER: {
+            int id = lookup_symbol(node->t.lexeme);
+            if (id == -1) {
+                semantic_error(node->t.line, "Variable no declarada o fuera de ámbito:", node->t.lexeme);
+                node->eval_type = TKN_ERROR;
+            } else {
+                node->eval_type = get_symbol_type(id);
+            }
+            break;
+        }
+
+        case NODE_LITERAL: {
+            if (node->t.type == TKN_LIT_INT) node->eval_type = TKN_INT;
+            else if (node->t.type == TKN_LIT_FLOAT) node->eval_type = TKN_FLOAT;
+            else if (node->t.type == TKN_LIT_STRING) node->eval_type = TKN_STRING;
+            else if (node->t.type == TKN_LIT_TRUE || node->t.type == TKN_LIT_FALSE) node->eval_type = TKN_BOOL;
+            break;
+        }
+
+        case NODE_UNARY_OP: {
+            tokenType operand_type = node->left ? node->left->eval_type : TKN_EOF;
+            if (operand_type != TKN_INT && operand_type != TKN_FLOAT && operand_type != TKN_ERROR) {
+                semantic_error(node->t.line, "Operación unaria iterativa ++/-- sobre tipo no numérico.", node->t.lexeme);
+                node->eval_type = TKN_ERROR;
+            } else {
+                node->eval_type = operand_type;
+            }
+            break;
+        }
+
+        case NODE_BINARY_OP: {
+            tokenType leftType = node->left ? node->left->eval_type : TKN_EOF;
+            tokenType rightType = node->right ? node->right->eval_type : TKN_EOF;
+
+            // si los hijos fallaron
+            if (leftType == TKN_ERROR || rightType == TKN_ERROR) {
+                node->eval_type = TKN_ERROR;
+                break;
+            }
+
+            if (node->t.type == TKN_PLUS || node->t.type == TKN_MINUS || node->t.type == TKN_MULT || node->t.type == TKN_DIV || node->t.type == TKN_POWER) {
+                if (leftType == TKN_INT && rightType == TKN_INT) {
+                    node->eval_type = TKN_INT;
+                } else if ((leftType == TKN_FLOAT || leftType == TKN_INT) && 
+                           (rightType == TKN_FLOAT || rightType == TKN_INT)) {
+                    node->eval_type = TKN_FLOAT;
+                } else if (node->t.type == TKN_PLUS && leftType == TKN_STRING && rightType == TKN_STRING) {
+                    // Soporte de concatenación
+                    node->eval_type = TKN_STRING; 
+                } else {
+                    semantic_error(node->t.line, "Tipos incompatibles en operación aritmética:", node->t.lexeme);
+                    node->eval_type = TKN_ERROR;
+                }
+            } else if (node->t.type == TKN_GREATER || node->t.type == TKN_LESS || 
+                       node->t.type == TKN_GREATER_EQUAL || node->t.type == TKN_LESS_EQUAL || 
+                       node->t.type == TKN_EQUAL || node->t.type == TKN_NOT_EQUAL) {
+                // Return bool de operadores relacionales
+                node->eval_type = TKN_BOOL;
+            }
+            break;
+        }
+
+        case NODE_ASSIGN: {
+            tokenType target_type = node->left ? node->left->eval_type : TKN_EOF;
+            tokenType expr_type = node->right ? node->right->eval_type : TKN_EOF;
+            
+            if (target_type != TKN_ERROR && expr_type != TKN_ERROR && target_type != expr_type) {
+                if (target_type == TKN_FLOAT && expr_type == TKN_INT) {
+                    // Casting implícito int a float = válido
+                } else {
+                    semantic_error(node->t.line, "Tipos incompatibles en la asignación a la variable. Tipo destino no concuerda con expresión.", NULL);
+                }
+            }
+            break;
+        }
+
+        case NODE_IF:
+        case NODE_WHILE:
+        case NODE_FOR: {
+            // El FOR también usa node->condition, IF y WHILE igual
+            if (node->condition) {
+                tokenType cond_type = node->condition->eval_type;
+                if (cond_type != TKN_BOOL && cond_type != TKN_ERROR) {
+                    semantic_error(node->t.line, "La condición estructurada debe evaluar puramente a booleano", NULL);
+                }
+            }
+            break;
+        }
+
+        default:
+            break;
+    }
+
+    // Encadenamiento
+    validate_node(node->next);
+}
+
+void analyze_semantic(ASTNode *root) {
+    if (!root) return;
+    printf("\n=== INICIANDO ANALISIS SEMANTICO ===\n");
+    semantic_errors = 0;
+    
+    validate_node(root);
+    
+    if (semantic_errors == 0) {
+        printf("Análisis Semántico completado sin errores.\n");
+    } else {
+        printf("Análisis Semántico abortado, se encontraron %d errores.\n", semantic_errors);
+    }
+}

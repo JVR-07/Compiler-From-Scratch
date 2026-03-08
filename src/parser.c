@@ -253,6 +253,7 @@ ASTNode* parse_proc(Parser *p) {
     match(p, TKN_PROC);
     if (p->current_token.type == TKN_IDENTIFIER) {
         node->left = create_node(NODE_IDENTIFIER, p->current_token);
+        install_symbol(p->current_token.lexeme, TKN_IDENTIFIER, TKN_PROC);
         match(p, TKN_IDENTIFIER);
     }
     

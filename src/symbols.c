@@ -64,6 +64,15 @@ int install_symbol(const char *lexeme, tokenType type, tokenType data_type) {
     return new_sym.id;
 }
 
+tokenType get_symbol_type(int id) {
+    for (int i = 0; i < symbol_count; i++) {
+        if (symbol_table[i].id == id) {
+            return symbol_table[i].data_type;
+        }
+    }
+    return TKN_ERROR;
+}
+
 void print_symbol_table() {
     printf("\n=== TABLA DE SIMBOLOS ===\n");
     printf("%-5s | %-20s | %-15s | %-6s\n", "ID", "LEXEMA", "TIPO DATO", "SCOPE");

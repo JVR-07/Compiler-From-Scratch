@@ -4,6 +4,7 @@
 #include "parser.h"
 
 #include "ast.h"
+#include "semantic.h"
 
 int main(int argc, char *argv[]) {
     if (argc < 2) {
@@ -25,6 +26,10 @@ int main(int argc, char *argv[]) {
     init_parser(&parser, &lexer);
         
     ASTNode* root = parse(&parser);
+    
+    if (!parser.has_error) {
+        analyze_semantic(root);
+    }
 
     print_symbol_table();
     free_ast(root);
