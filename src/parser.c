@@ -139,7 +139,7 @@ void parse_declaration(Parser *p) {
     advance(p); 
 
     if (p->current_token.type == TKN_IDENTIFIER) {
-        install_symbol(p->current_token.lexeme, type);
+        install_symbol(p->current_token.lexeme, TKN_IDENTIFIER, type);
         advance(p);
     } else {
         parser_error(p, "Se esperaba un nombre de variable");
@@ -189,6 +189,7 @@ void parse_write(Parser *p) {
 // FOR -> for + DECLARACION/ASIGNACION , OPERACION_LOGICA , OPERACION_UNARIA + CUERPO
 void parse_for(Parser *p) {
     match(p, TKN_FOR);
+    enter_scope();
     
     // Parte 1: Declaracion o Asignacion
     if (p->current_token.type == TKN_INT || p->current_token.type == TKN_FLOAT || 
@@ -212,6 +213,7 @@ void parse_for(Parser *p) {
     
     // Cuerpo
     parse_block(p);
+    exit_scope();
 }
 
 // WHILE -> while + OPERACION_LOGICA + CUERPO
@@ -232,10 +234,14 @@ void parse_if(Parser *p) {
 void parse_proc(Parser *p) {
     match(p, TKN_PROC);
     match(p, TKN_IDENTIFIER);
+    
+    enter_scope();
     match(p, TKN_LPAREN);
     parse_parameters(p);
     match(p, TKN_RPAREN);
+    
     parse_block(p);
+    exit_scope();
 }
 
 // PARAMETROS -> (TIPO_DATO + IDENTIFICADOR)
@@ -245,7 +251,12 @@ void parse_parameters(Parser *p) {
     do {
         if (p->current_token.type == TKN_INT || p->current_token.type == TKN_FLOAT || 
             p->current_token.type == TKN_STRING || p->current_token.type == TKN_BOOL) {
+            tokenType type = p->current_token.type;
             advance(p);
+            
+            if (p->current_token.type == TKN_IDENTIFIER) {
+                install_symbol(p->current_token.lexeme, TKN_IDENTIFIER, type);
+            }
             match(p, TKN_IDENTIFIER);
         } else {
             parser_error(p, "Se esperaba un tipo de dato en parametro");
@@ -263,12 +274,14 @@ void parse_parameters(Parser *p) {
 // CUERPO -> { INSTRUCCION* }
 void parse_block(Parser *p) {
     match(p, TKN_LBRACE);
+    enter_scope();
     while (p->current_token.type != TKN_RBRACE && p->current_token.type != TKN_EOF && !p->has_error) {
         parse_instruction(p);
         if(p->has_error) {
             synchronize(p);
         }
     }
+    exit_scope();
     match(p, TKN_RBRACE);
 }
 
@@ -353,7 +366,7 @@ ASTNode* parse_factor(Parser *p) {
         
         NodeType node_type = (t.type == TKN_IDENTIFIER) ? NODE_IDENTIFIER : NODE_LITERAL;
         
-        install_symbol(t.lexeme, t.type);
+        install_symbol(t.lexeme, t.type, t.type);
         advance(p);
         return create_node(node_type, t);
     } else if (t.type == TKN_LPAREN) {
