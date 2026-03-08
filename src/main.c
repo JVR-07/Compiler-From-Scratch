@@ -3,6 +3,8 @@
 #include "symbols.h"
 #include "parser.h"
 
+#include "ast.h"
+
 int main(int argc, char *argv[]) {
     if (argc < 2) {
         printf("Formato: %s <archivo_fuente>\n", argv[0]);
@@ -22,9 +24,10 @@ int main(int argc, char *argv[]) {
     Parser parser;
     init_parser(&parser, &lexer);
         
-    parse(&parser);
+    ASTNode* root = parse(&parser);
 
     print_symbol_table();
+    free_ast(root);
 
     close_lexer(&lexer);
     fclose(f);
