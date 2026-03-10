@@ -422,8 +422,9 @@ ASTNode* parse_factor(Parser *p) {
         
         NodeType node_type = (t.type == TKN_IDENTIFIER) ? NODE_IDENTIFIER : NODE_LITERAL;
         
-        // Literal or Identifier might not need to be installed here again, but keeping logic
-        install_symbol(t.lexeme, t.type, t.type);
+        if (t.type != TKN_IDENTIFIER) {
+            install_symbol(t.lexeme, t.type, t.type);
+        }
         advance(p);
         return create_node(node_type, t);
     } else if (t.type == TKN_LPAREN) {
