@@ -38,7 +38,21 @@ void validate_node(ASTNode *node) {
             // Sin inferencia compleja acá
             break;
 
-        case NODE_VAR_DECL:
+        case NODE_VAR_DECL: {
+            if (node->right) {
+                tokenType decl_type = node->t.type;
+                tokenType expr_type = node->right->eval_type;
+                if (expr_type != TKN_ERROR && decl_type != expr_type) {
+                    if (decl_type == TKN_FLOAT && expr_type == TKN_INT) {
+                        // Casting implícito int a float = válido
+                    } else {
+                        semantic_error(node->t.line, "Tipos incompatibles en la inicialización de la variable.", node->left ? node->left->t.lexeme : NULL);
+                    }
+                }
+            }
+            break;
+        }
+
         case NODE_PROC_DECL:
             // Estos nodos insertan su propio tipo durante el parseo.
             // Opcionalmente podemos validar parámetros de PROC_DECL
