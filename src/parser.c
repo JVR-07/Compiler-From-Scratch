@@ -84,11 +84,11 @@ void parse_program(Parser *p) {
 
 void process_expression(ASTNode *node) {
     if (!node) return;
+
+    analyze_semantic(node);
+
     printf("\n--> Arbol de la Expresión:\n");
     print_ast(node, 0, "ROOT");
-    
-    printf("\n=== INICIANDO ANALISIS SEMANTICO ===\n");
-    validate_node(node);
     
     free_ast(node);
 }
@@ -393,8 +393,4 @@ ASTNode* parse_factor(Parser *p) {
 
     parser_error(p, "Expresión mal formada o factor no esperado");
     return NULL;
-}
-
-void parse(Parser *p) {
-    parse_program(p);
 }

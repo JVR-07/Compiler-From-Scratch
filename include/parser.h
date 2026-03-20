@@ -13,7 +13,6 @@ typedef struct {
 
 // Funciones de inicializacion y control
 void init_parser(Parser *p, Lexer *l);
-void parse(Parser *p);
 void advance(Parser *p);
 int match(Parser *p, tokenType expected);
 void parser_error(Parser *p, const char *message);

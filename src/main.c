@@ -25,7 +25,7 @@ int main(int argc, char *argv[]) {
     Parser parser;
     init_parser(&parser, &lexer);
         
-    parse(&parser);
+    parse_program(&parser);
     
     print_symbol_table();
 
