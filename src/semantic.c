@@ -17,47 +17,11 @@ void semantic_error(int line, const char *message, const char *lexeme) {
 void validate_node(ASTNode *node) {
     if (!node) return;
 
-    int is_scope = 0;
-    if (node->type == NODE_BLOCK || node->type == NODE_FOR || node->type == NODE_PROC_DECL) {
-        is_scope = 1;
-        enter_scope();
-    }
-
     // Recorrido Post-fix (hijos primero) para bottom-up eval
     validate_node(node->left);
     validate_node(node->right);
-    validate_node(node->condition);
-    validate_node(node->increment);
-    validate_node(node->body);
     
     switch (node->type) {
-        case NODE_PROGRAM:
-        case NODE_BLOCK:
-        case NODE_READ:
-        case NODE_WRITE:
-            // Sin inferencia compleja acá
-            break;
-
-        case NODE_VAR_DECL: {
-            if (node->right) {
-                tokenType decl_type = node->t.type;
-                tokenType expr_type = node->right->eval_type;
-                if (expr_type != TKN_ERROR && decl_type != expr_type) {
-                    if (decl_type == TKN_FLOAT && expr_type == TKN_INT) {
-                        // Casting implícito int a float = válido
-                    } else {
-                        semantic_error(node->t.line, "Tipos incompatibles en la inicialización de la variable.", node->left ? node->left->t.lexeme : NULL);
-                    }
-                }
-            }
-            break;
-        }
-
-        case NODE_PROC_DECL:
-            // Estos nodos insertan su propio tipo durante el parseo.
-            // Opcionalmente podemos validar parámetros de PROC_DECL
-            break;
-
         case NODE_IDENTIFIER: {
             int id = lookup_symbol(node->t.lexeme);
             if (id == -1) {
@@ -134,25 +98,9 @@ void validate_node(ASTNode *node) {
             break;
         }
 
-        case NODE_IF:
-        case NODE_WHILE:
-        case NODE_FOR: {
-            // El FOR también usa node->condition, IF y WHILE igual
-            if (node->condition) {
-                tokenType cond_type = node->condition->eval_type;
-                if (cond_type != TKN_BOOL && cond_type != TKN_ERROR) {
-                    semantic_error(node->t.line, "La condición estructurada debe evaluar puramente a booleano", NULL);
-                }
-            }
-            break;
-        }
-
         default:
             break;
     }
-
-    // Encadenamiento
-    validate_node(node->next);
 }
 
 void analyze_semantic(ASTNode *root) {
@@ -163,7 +111,7 @@ void analyze_semantic(ASTNode *root) {
     validate_node(root);
     
     if (semantic_errors == 0) {
-        printf("Análisis Semántico completado sin errores.\n");
+        printf("Análisis Semántico completado.\n");
     } else {
         printf("Análisis Semántico abortado, se encontraron %d errores.\n", semantic_errors);
     }

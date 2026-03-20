@@ -3,6 +3,7 @@
 #include "parser.h"
 #include "symbols.h"
 #include "ast.h"
+#include "semantic.h"
 
 void init_parser(Parser *p, Lexer *l) {
     p->lexer = l;
@@ -65,22 +66,9 @@ int match(Parser *p, tokenType expected) {
 }
 
 // PROGRAMA -> INSTRUCCION*
-ASTNode* parse_program(Parser *p) {
-    printf("\n=== INICIANDO ANALISIS SINTACTICO ===\n");
-    ASTNode *program = create_node(NODE_PROGRAM, p->current_token);
-    ASTNode *current = NULL;
-
+void parse_program(Parser *p) {
     while (p->current_token.type != TKN_EOF && !p->has_error) {
-        ASTNode *stmt = parse_instruction(p);
-        if (stmt) {
-            if (!program->body) {
-                program->body = stmt;
-                current = stmt;
-            } else {
-                current->next = stmt;
-                current = stmt;
-            }
-        }
+        parse_instruction(p);
 
         if(p->has_error) {
             synchronize(p);
@@ -89,47 +77,54 @@ ASTNode* parse_program(Parser *p) {
     
     if (!p->has_error) {
         printf("Analisis Sintactico completado sin errores.\n");
-        printf("\n--> Arbol de Sintaxis Abstracta Global:\n");
-        print_ast(program, 0, "ROOT");
     } else {
         printf("Analisis Sintactico abortado por errores.\n");
     }
-    return program;
 }
 
-ASTNode* parse_instruction(Parser *p) {
-    ASTNode *stmt = NULL;
+void process_expression(ASTNode *node) {
+    if (!node) return;
+    printf("\n--> Arbol de la Expresión:\n");
+    print_ast(node, 0, "ROOT");
+    
+    printf("\n=== INICIANDO ANALISIS SEMANTICO ===\n");
+    validate_node(node);
+    
+    free_ast(node);
+}
+
+void parse_instruction(Parser *p) {
     switch (p->current_token.type) {
         case TKN_INT: case TKN_FLOAT: case TKN_STRING: case TKN_BOOL:
-            stmt = parse_declaration(p);
+            parse_declaration(p);
             match(p, TKN_SEMICOLON);
             break;
         case TKN_READ:
-            stmt = parse_read(p);
+            parse_read(p);
             match(p, TKN_SEMICOLON);
             break;
         case TKN_WRITE:
-            stmt = parse_write(p);
+            parse_write(p);
             match(p, TKN_SEMICOLON);
             break;
         case TKN_FOR:
-            stmt = parse_for(p);
+            parse_for(p);
             match(p, TKN_SEMICOLON);
             break;
         case TKN_WHILE:
-            stmt = parse_while(p);
+            parse_while(p);
             match(p, TKN_SEMICOLON);
             break;
         case TKN_IF:
-            stmt = parse_if(p);
+            parse_if(p);
             match(p, TKN_SEMICOLON);
             break;
         case TKN_PROC:
-            stmt = parse_proc(p);
+            parse_proc(p);
             match(p, TKN_SEMICOLON);
             break;
         case TKN_IDENTIFIER:
-            stmt = parse_assignment_or_unary(p);
+            parse_assignment_or_unary(p);
             match(p, TKN_SEMICOLON);
             break;
         default:
@@ -137,31 +132,35 @@ ASTNode* parse_instruction(Parser *p) {
             advance(p);
             break;
     }
-    return stmt;
 }
 
-ASTNode* parse_declaration(Parser *p) {
+void parse_declaration(Parser *p) {
     token type_tkn = p->current_token;
-    ASTNode *decl = create_node(NODE_VAR_DECL, type_tkn);
     advance(p); 
 
+    token id_tkn;
     if (p->current_token.type == TKN_IDENTIFIER) {
-        token id_tkn = p->current_token;
-        decl->left = create_node(NODE_IDENTIFIER, id_tkn);
+        id_tkn = p->current_token;
         install_symbol(id_tkn.lexeme, TKN_IDENTIFIER, type_tkn.type);
         advance(p);
     } else {
         parser_error(p, "Se esperaba un nombre de variable");
+        return;
     }
     
     if (p->current_token.type == TKN_ASSIGN) {
+        token assign_tkn = p->current_token;
         advance(p);
-        decl->right = parse_expression(p);
+        
+        ASTNode *assign = create_node(NODE_ASSIGN, assign_tkn);
+        assign->left = create_node(NODE_IDENTIFIER, id_tkn);
+        assign->right = parse_expression(p);
+        
+        process_expression(assign);
     }
-    return decl;
 }
 
-ASTNode* parse_assignment_or_unary(Parser *p) {
+void parse_assignment_or_unary(Parser *p) {
     token id_tkn = p->current_token;
     ASTNode *id_node = create_node(NODE_IDENTIFIER, id_tkn);
     match(p, TKN_IDENTIFIER);
@@ -172,127 +171,100 @@ ASTNode* parse_assignment_or_unary(Parser *p) {
         assign->left = id_node;
         advance(p);
         assign->right = parse_expression(p);
-        return assign;
+        process_expression(assign);
     } else if (p->current_token.type == TKN_SELF_PLUS || p->current_token.type == TKN_SELF_MINUS) {
         token unary_tkn = p->current_token;
         ASTNode *unary = create_node(NODE_UNARY_OP, unary_tkn);
         unary->left = id_node;
         advance(p);
-        return unary;
+        process_expression(unary);
     } else {
         parser_error(p, "Se esperaba '=' o un operador unario '++' / '--'");
-        return NULL;
+        free_ast(id_node);
     }
 }
 
-ASTNode* parse_read(Parser *p) {
-    token read_tkn = p->current_token;
-    ASTNode *node = create_node(NODE_READ, read_tkn);
+void parse_read(Parser *p) {
     match(p, TKN_READ);
     if (p->current_token.type == TKN_IDENTIFIER) {
-        node->left = create_node(NODE_IDENTIFIER, p->current_token);
         advance(p);
     }
-    return node;
 }
 
-ASTNode* parse_write(Parser *p) {
-    token write_tkn = p->current_token;
-    ASTNode *node = create_node(NODE_WRITE, write_tkn);
+void parse_write(Parser *p) {
     match(p, TKN_WRITE);
-    node->left = parse_expression(p);
-    return node;
+    ASTNode *expr = parse_expression(p);
+    process_expression(expr);
 }
 
-ASTNode* parse_for(Parser *p) {
-    token for_tkn = p->current_token;
-    ASTNode *node = create_node(NODE_FOR, for_tkn);
+void parse_for(Parser *p) {
     match(p, TKN_FOR);
     enter_scope();
     
     if (p->current_token.type == TKN_INT || p->current_token.type == TKN_FLOAT || 
         p->current_token.type == TKN_STRING || p->current_token.type == TKN_BOOL) {
-        node->left = parse_declaration(p);
+        parse_declaration(p);
     } else if (p->current_token.type == TKN_IDENTIFIER) {
-        node->left = parse_assignment_or_unary(p);
+        parse_assignment_or_unary(p);
     } else {
         parser_error(p, "Se esperaba declaracion o asignacion inicial en for");
     }
     
     match(p, TKN_COMMA);
-    node->condition = parse_logical_expression(p);
+    ASTNode *cond = parse_logical_expression(p);
+    process_expression(cond);
+    
     match(p, TKN_COMMA);
-    node->increment = parse_unary_operation(p);
-    node->body = parse_block(p);
+    ASTNode *inc = parse_unary_operation(p);
+    process_expression(inc);
+    
+    parse_block(p);
     
     exit_scope();
-    return node;
 }
 
-ASTNode* parse_while(Parser *p) {
-    token while_tkn = p->current_token;
-    ASTNode *node = create_node(NODE_WHILE, while_tkn);
+void parse_while(Parser *p) {
     match(p, TKN_WHILE);
-    node->condition = parse_logical_expression(p);
-    node->body = parse_block(p);
-    return node;
+    ASTNode *cond = parse_logical_expression(p);
+    process_expression(cond);
+    parse_block(p);
 }
 
-ASTNode* parse_if(Parser *p) {
-    token if_tkn = p->current_token;
-    ASTNode *node = create_node(NODE_IF, if_tkn);
+void parse_if(Parser *p) {
     match(p, TKN_IF);
-    node->condition = parse_logical_expression(p);
-    node->body = parse_block(p);
-    return node;
+    ASTNode *cond = parse_logical_expression(p);
+    process_expression(cond);
+    parse_block(p);
 }
 
-ASTNode* parse_proc(Parser *p) {
-    token proc_tkn = p->current_token;
-    ASTNode *node = create_node(NODE_PROC_DECL, proc_tkn);
+void parse_proc(Parser *p) {
     match(p, TKN_PROC);
     if (p->current_token.type == TKN_IDENTIFIER) {
-        node->left = create_node(NODE_IDENTIFIER, p->current_token);
         install_symbol(p->current_token.lexeme, TKN_IDENTIFIER, TKN_PROC);
         match(p, TKN_IDENTIFIER);
     }
     
     enter_scope();
     match(p, TKN_LPAREN);
-    node->right = parse_parameters(p);
+    parse_parameters(p);
     match(p, TKN_RPAREN);
-    node->body = parse_block(p);
+    parse_block(p);
     exit_scope();
-    
-    return node;
 }
 
-ASTNode* parse_parameters(Parser *p) {
-    if (p->current_token.type == TKN_RPAREN) return NULL;
-
-    ASTNode *head = NULL;
-    ASTNode *current = NULL;
+void parse_parameters(Parser *p) {
+    if (p->current_token.type == TKN_RPAREN) return;
 
     do {
         if (p->current_token.type == TKN_INT || p->current_token.type == TKN_FLOAT || 
             p->current_token.type == TKN_STRING || p->current_token.type == TKN_BOOL) {
             token type_tkn = p->current_token;
-            ASTNode *param = create_node(NODE_VAR_DECL, type_tkn);
             advance(p);
             
             if (p->current_token.type == TKN_IDENTIFIER) {
-                param->left = create_node(NODE_IDENTIFIER, p->current_token);
                 install_symbol(p->current_token.lexeme, TKN_IDENTIFIER, type_tkn.type);
             }
             match(p, TKN_IDENTIFIER);
-            
-            if (!head) {
-                head = param;
-                current = param;
-            } else {
-                current->next = param;
-                current = param;
-            }
         } else {
             parser_error(p, "Se esperaba un tipo de dato en parametro");
             break;
@@ -304,28 +276,14 @@ ASTNode* parse_parameters(Parser *p) {
             break;
         }
     } while (1);
-    
-    return head;
 }
 
-ASTNode* parse_block(Parser *p) {
-    token block_tkn = p->current_token;
-    ASTNode *node = create_node(NODE_BLOCK, block_tkn);
+void parse_block(Parser *p) {
     match(p, TKN_LBRACE);
     
     enter_scope();
-    ASTNode *current = NULL;
     while (p->current_token.type != TKN_RBRACE && p->current_token.type != TKN_EOF && !p->has_error) {
-        ASTNode *stmt = parse_instruction(p);
-        if (stmt) {
-            if (!node->body) {
-                node->body = stmt;
-                current = stmt;
-            } else {
-                current->next = stmt;
-                current = stmt;
-            }
-        }
+        parse_instruction(p);
         if(p->has_error) {
             synchronize(p);
         }
@@ -333,7 +291,6 @@ ASTNode* parse_block(Parser *p) {
     exit_scope();
     
     match(p, TKN_RBRACE);
-    return node;
 }
 
 ASTNode* parse_logical_expression(Parser *p) {
@@ -438,6 +395,6 @@ ASTNode* parse_factor(Parser *p) {
     return NULL;
 }
 
-ASTNode* parse(Parser *p) {
-    return parse_program(p);
+void parse(Parser *p) {
+    parse_program(p);
 }

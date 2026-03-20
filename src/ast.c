@@ -8,10 +8,6 @@ ASTNode* create_node(NodeType type, token t) {
     node->t = t;
     node->left = NULL;
     node->right = NULL;
-    node->next = NULL;
-    node->condition = NULL;
-    node->increment = NULL;
-    node->body = NULL;
     node->eval_type = TKN_EOF; // Default genérico
     return node;
 }
@@ -27,10 +23,6 @@ void free_ast(ASTNode *node) {
     if (node == NULL) return;
     free_ast(node->left);
     free_ast(node->right);
-    free_ast(node->condition);
-    free_ast(node->increment);
-    free_ast(node->body);
-    free_ast(node->next);
     free(node);
 }
 
@@ -46,7 +38,7 @@ void print_ast(ASTNode *node, int level, char* side) {
         }
     }
 
-    // Si viene de una rama específica (L, R, Cond, Inc) imprimimos el prefijo corto
+    // Si viene de una rama específica (L, R) imprimimos el prefijo corto
     if (side && side[0] != '\0') {
         printf("%s", side);
     }
@@ -56,29 +48,11 @@ void print_ast(ASTNode *node, int level, char* side) {
         case NODE_LITERAL:      printf("[Literal: %s]\n", node->t.lexeme); break;
         case NODE_IDENTIFIER:   printf("[Identificador: %s]\n", node->t.lexeme); break;
         case NODE_UNARY_OP:     printf("[Unario: %s]\n", node->t.lexeme); break;
-        case NODE_PROGRAM:      printf("[Programa]\n"); break;
-        case NODE_VAR_DECL:     printf("[Declaración Var: %s]\n", node->t.lexeme); break;
         case NODE_ASSIGN:       printf("[Asignación]\n"); break;
-        case NODE_IF:           printf("[If]\n"); break;
-        case NODE_WHILE:        printf("[While]\n"); break;
-        case NODE_FOR:          printf("[For]\n"); break;
-        case NODE_PROC_DECL:    printf("[Proc Decl: %s]\n", node->t.lexeme); break;
-        case NODE_PROC_CALL:    printf("[Call: %s]\n", node->t.lexeme); break;
-        case NODE_BLOCK:        printf("[Bloque]\n"); break;
-        case NODE_READ:         printf("[Read]\n"); break;
-        case NODE_WRITE:        printf("[Write]\n"); break;
         default:                printf("[Nodo desconocido]\n");
     }
 
     // Los hijos se indentan con etiquetas descriptivas cortas
-    if (node->condition) print_ast(node->condition, level + 1, "Cond: ");
     if (node->left)      print_ast(node->left, level + 1, "L: ");
     if (node->right)     print_ast(node->right, level + 1, "R: ");
-    if (node->increment) print_ast(node->increment, level + 1, "Inc: ");
-    
-    // El cuerpo (Body) no lleva etiqueta para que las instrucciones se vean como hijos directos
-    if (node->body)      print_ast(node->body, level + 1, "");
-    
-    // Los hermanos (Next) mantienen el mismo nivel y la misma etiqueta de rama que su predecesor
-    if (node->next)      print_ast(node->next, level, side);
 }

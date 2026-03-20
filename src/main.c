@@ -25,14 +25,9 @@ int main(int argc, char *argv[]) {
     Parser parser;
     init_parser(&parser, &lexer);
         
-    ASTNode* root = parse(&parser);
+    parse(&parser);
     
-    if (!parser.has_error) {
-        analyze_semantic(root);
-    }
-
     print_symbol_table();
-    free_ast(root);
 
     close_lexer(&lexer);
     fclose(f);
