@@ -113,9 +113,4 @@ void analyze_semantic(ASTNode *root) {
     semantic_errors = 0;
     
     validate_node(root);
-    
-    if (semantic_errors != 0) {
-        printf("\n=== ANÁLISIS SEMÁNTICO ABORTADO ===\n");
-        printf("\033[1;31mError Semántico\033[0m Se encontraron %d errores.\n", semantic_errors);
-    }
 }

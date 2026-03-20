@@ -30,6 +30,7 @@ void parser_error(Parser *p, const char *message) {
 }
 
 void synchronize(Parser *p) {
+    p->has_error = 0;
 
     while (p->current_token.type != TKN_EOF) {
         if (p->current_token.type == TKN_SEMICOLON) {
@@ -73,7 +74,7 @@ int match(Parser *p, tokenType expected) {
 
 // PROGRAMA -> INSTRUCCION*
 void parse_program(Parser *p) {
-    while (p->current_token.type != TKN_EOF && !p->has_error) {
+    while (p->current_token.type != TKN_EOF) {
         parse_instruction(p);
 
         if(p->has_error) {
