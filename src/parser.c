@@ -16,10 +16,13 @@ void advance(Parser *p) {
 }
 
 void parser_error(Parser *p, const char *message) {
-    printf("\033[1;31mError Sintáctico\033[0m [Línea %d]: %s. Cerca de: '%s'\n", 
-           p->current_token.line, 
-           message, 
-           p->current_token.lexeme);
+    if (p->current_token.type == TKN_ERROR) {
+        printf("\033[1;31mError Léxico\033[0m [Línea %d]: Carácter no reconocido '%s'\n", 
+               p->current_token.line, p->current_token.lexeme);
+    } else {
+        printf("\n\033[1;31mError Sintáctico\033[0m [Línea %d]: %s. Cerca de: '%s'\n", 
+               p->current_token.line, message, p->current_token.lexeme);
+    }
     p->has_error = 1;
 }
 
@@ -85,10 +88,12 @@ void parse_program(Parser *p) {
 void process_expression(ASTNode *node) {
     if (!node) return;
 
-    analyze_semantic(node);
+    printf("\n=== ANALISIS SEMANTICO ===\n");
 
     printf("\n--> Arbol de la Expresión:\n");
     print_ast(node, 0, "ROOT");
+
+    analyze_semantic(node);
     
     free_ast(node);
 }

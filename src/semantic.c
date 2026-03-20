@@ -105,14 +105,16 @@ void validate_node(ASTNode *node) {
 
 void analyze_semantic(ASTNode *root) {
     if (!root) return;
-    printf("\n=== INICIANDO ANALISIS SEMANTICO ===\n");
+    
     semantic_errors = 0;
     
     validate_node(root);
     
     if (semantic_errors == 0) {
-        printf("Análisis Semántico completado.\n");
+        printf("\n=== ANÁLISIS SEMÁNTICO COMPLETADO SIN ERRORES ===\n");
     } else {
-        printf("Análisis Semántico abortado, se encontraron %d errores.\n", semantic_errors);
+        printf("\n=== ANÁLISIS SEMÁNTICO ABORTADO ===\n");
+        printf("\033[1;31mError Semántico\033[0m Se encontraron %d errores.\n", semantic_errors);
+          
     }
 }
