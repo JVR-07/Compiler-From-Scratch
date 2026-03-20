@@ -319,8 +319,11 @@ void parse_block(Parser *p) {
     match(p, TKN_LBRACE);
     
     enter_scope();
+
     while (p->current_token.type != TKN_RBRACE && p->current_token.type != TKN_EOF && !p->has_error) {
+        
         parse_instruction(p);
+        
         if(p->has_error) {
             synchronize(p);
         }
