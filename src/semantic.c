@@ -8,9 +8,9 @@ int semantic_errors = 0;
 
 void semantic_error(int line, const char *message, const char *lexeme) {
     if (lexeme)
-        printf("\033[1;31mError Semántico\033[0m [Línea %d]: %s '%s'\n", line, message, lexeme);
+        printf("\n\033[1;31mError Semántico\033[0m [Línea %d]: %s '%s'\n", line, message, lexeme);
     else
-        printf("\033[1;31mError Semántico\033[0m [Línea %d]: %s\n", line, message);
+        printf("\n\033[1;31mError Semántico\033[0m [Línea %d]: %s\n", line, message);
     semantic_errors++;
 }
 

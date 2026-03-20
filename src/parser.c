@@ -195,15 +195,31 @@ void parse_assignment_or_unary(Parser *p) {
 
 void parse_read(Parser *p) {
     match(p, TKN_READ);
-    if (p->current_token.type == TKN_IDENTIFIER) {
+    
+    if(p->current_token.type == TKN_IDENTIFIER) {
+        ASTNode *node = create_node(NODE_IDENTIFIER, p->current_token);
+    
         advance(p);
+
+        process_expression(node, p);
+    } else if (p->current_token.type != TKN_SEMICOLON) {
+        parser_error(p, "Se esperaba un identificador o ';' después de 'read'");
     }
 }
 
 void parse_write(Parser *p) {
     match(p, TKN_WRITE);
+
+    if (p->current_token.type == TKN_SEMICOLON) {
+        parser_error(p, "Se esperaba un argumento");
+        return;
+    }
+
     ASTNode *expr = parse_expression(p);
-    process_expression(expr, p);
+
+    if(expr) {
+        process_expression(expr, p);
+    }
 }
 
 void parse_for(Parser *p) {
@@ -234,15 +250,27 @@ void parse_for(Parser *p) {
 
 void parse_while(Parser *p) {
     match(p, TKN_WHILE);
-    ASTNode *cond = parse_logical_expression(p);
-    process_expression(cond, p);
+
+    if(p->current_token.type == TKN_LBRACE) {
+        parser_error(p, "Se esperaba una comparación");
+    } else {
+        ASTNode *cond = parse_logical_expression(p);
+        process_expression(cond, p);
+    }
+
     parse_block(p);
 }
 
 void parse_if(Parser *p) {
     match(p, TKN_IF);
-    ASTNode *cond = parse_logical_expression(p);
-    process_expression(cond, p);
+
+    if(p->current_token.type == TKN_LBRACE) {
+        parser_error(p, "Se esperaba una comparación");
+    } else {
+        ASTNode *cond = parse_logical_expression(p);
+        process_expression(cond, p);
+    }
+
     parse_block(p);
 }
 
@@ -304,14 +332,17 @@ void parse_block(Parser *p) {
 
 ASTNode* parse_logical_expression(Parser *p) {
     ASTNode *node1 = parse_expression(p);
+    
     if (p->current_token.type == TKN_GREATER || p->current_token.type == TKN_LESS || 
         p->current_token.type == TKN_GREATER_EQUAL || p->current_token.type == TKN_LESS_EQUAL || 
         p->current_token.type == TKN_EQUAL || p->current_token.type == TKN_NOT_EQUAL) {
+        
         token op_tkn = p->current_token;
         advance(p);
         ASTNode *node2 = parse_expression(p);
         return create_binary_node(op_tkn, node1, node2);
     }
+    parser_error(p, "Se esperaba una comparación");
     return node1;
 }
 
