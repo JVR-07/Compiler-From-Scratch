@@ -18,7 +18,7 @@ int match(Parser *p, tokenType expected);
 void parser_error(Parser *p, const char *message);
 void synchronize(Parser *p);
 
-void process_expression(ASTNode *node);
+void process_expression(ASTNode *node, Parser *p);
 
 // Reglas principales
 void parse_program(Parser *p);

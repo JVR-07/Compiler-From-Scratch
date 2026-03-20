@@ -16,8 +16,11 @@ void advance(Parser *p) {
 }
 
 void parser_error(Parser *p, const char *message) {
+    
+    if (p->has_error) return;
+
     if (p->current_token.type == TKN_ERROR) {
-        printf("\033[1;31mError Léxico\033[0m [Línea %d]: Carácter no reconocido '%s'\n", 
+        printf("\n\033[1;31mError Léxico\033[0m [Línea %d]: Carácter no reconocido '%s'\n", 
                p->current_token.line, p->current_token.lexeme);
     } else {
         printf("\n\033[1;31mError Sintáctico\033[0m [Línea %d]: %s. Cerca de: '%s'\n", 
@@ -27,11 +30,11 @@ void parser_error(Parser *p, const char *message) {
 }
 
 void synchronize(Parser *p) {
-    p->has_error = 0; 
 
     while (p->current_token.type != TKN_EOF) {
         if (p->current_token.type == TKN_SEMICOLON) {
             advance(p);
+            p->has_error = 0;
             return;
         }
 
@@ -78,22 +81,22 @@ void parse_program(Parser *p) {
         }
     }
     
-    if (!p->has_error) {
-        printf("Analisis Sintactico completado sin errores.\n");
-    } else {
-        printf("Analisis Sintactico abortado por errores.\n");
+    if (p->has_error) {
+        printf("\n\033[1;33mAviso\033[0m: Analisis Sintactico abortado por errores.\n");
     }
 }
 
-void process_expression(ASTNode *node) {
+void process_expression(ASTNode *node, Parser *p) {
     if (!node) return;
-
-    printf("\n=== ANALISIS SEMANTICO ===\n");
 
     printf("\n--> Arbol de la Expresión:\n");
     print_ast(node, 0, "ROOT");
 
-    analyze_semantic(node);
+    if (!p->has_error) {
+        analyze_semantic(node);
+    } else {
+        printf("\n\033[1;33mAviso\033[0m: Análisis Semántico omitido por errores previos.\n");
+    }
     
     free_ast(node);
 }
@@ -161,7 +164,7 @@ void parse_declaration(Parser *p) {
         assign->left = create_node(NODE_IDENTIFIER, id_tkn);
         assign->right = parse_expression(p);
         
-        process_expression(assign);
+        process_expression(assign, p);
     }
 }
 
@@ -176,13 +179,13 @@ void parse_assignment_or_unary(Parser *p) {
         assign->left = id_node;
         advance(p);
         assign->right = parse_expression(p);
-        process_expression(assign);
+        process_expression(assign, p);
     } else if (p->current_token.type == TKN_SELF_PLUS || p->current_token.type == TKN_SELF_MINUS) {
         token unary_tkn = p->current_token;
         ASTNode *unary = create_node(NODE_UNARY_OP, unary_tkn);
         unary->left = id_node;
         advance(p);
-        process_expression(unary);
+        process_expression(unary, p);
     } else {
         parser_error(p, "Se esperaba '=' o un operador unario '++' / '--'");
         free_ast(id_node);
@@ -199,7 +202,7 @@ void parse_read(Parser *p) {
 void parse_write(Parser *p) {
     match(p, TKN_WRITE);
     ASTNode *expr = parse_expression(p);
-    process_expression(expr);
+    process_expression(expr, p);
 }
 
 void parse_for(Parser *p) {
@@ -217,11 +220,11 @@ void parse_for(Parser *p) {
     
     match(p, TKN_COMMA);
     ASTNode *cond = parse_logical_expression(p);
-    process_expression(cond);
+    process_expression(cond, p);
     
     match(p, TKN_COMMA);
     ASTNode *inc = parse_unary_operation(p);
-    process_expression(inc);
+    process_expression(inc, p);
     
     parse_block(p);
     
@@ -231,14 +234,14 @@ void parse_for(Parser *p) {
 void parse_while(Parser *p) {
     match(p, TKN_WHILE);
     ASTNode *cond = parse_logical_expression(p);
-    process_expression(cond);
+    process_expression(cond, p);
     parse_block(p);
 }
 
 void parse_if(Parser *p) {
     match(p, TKN_IF);
     ASTNode *cond = parse_logical_expression(p);
-    process_expression(cond);
+    process_expression(cond, p);
     parse_block(p);
 }
 

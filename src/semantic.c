@@ -88,11 +88,15 @@ void validate_node(ASTNode *node) {
             tokenType target_type = node->left ? node->left->eval_type : TKN_EOF;
             tokenType expr_type = node->right ? node->right->eval_type : TKN_EOF;
             
-            if (target_type != TKN_ERROR && expr_type != TKN_ERROR && target_type != expr_type) {
-                if (target_type == TKN_FLOAT && expr_type == TKN_INT) {
-                    // Casting implícito int a float = válido
-                } else {
-                    semantic_error(node->t.line, "Tipos incompatibles en la asignación a la variable. Tipo destino no concuerda con expresión.", NULL);
+            if (target_type == TKN_ERROR || expr_type == TKN_ERROR) {
+                node->eval_type = TKN_ERROR;
+                break;
+            }
+
+            if (target_type != expr_type) {
+                if (!(target_type == TKN_FLOAT && expr_type == TKN_INT)) {
+                    semantic_error(node->t.line, "Tipos incompatibles en la asignación.", NULL);
+                    node->eval_type = TKN_ERROR;
                 }
             }
             break;
@@ -110,11 +114,8 @@ void analyze_semantic(ASTNode *root) {
     
     validate_node(root);
     
-    if (semantic_errors == 0) {
-        printf("\n=== ANÁLISIS SEMÁNTICO COMPLETADO SIN ERRORES ===\n");
-    } else {
+    if (semantic_errors != 0) {
         printf("\n=== ANÁLISIS SEMÁNTICO ABORTADO ===\n");
         printf("\033[1;31mError Semántico\033[0m Se encontraron %d errores.\n", semantic_errors);
-          
     }
 }

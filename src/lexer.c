@@ -54,7 +54,7 @@ token next_token(Lexer *l) {
         int i = 0;
         t.lexeme[i++] = c; 
         
-        while ((c = get_char(l)) != '"' && c != EOF) {
+        while ((c = get_char(l)) != '"' && c != '\n' && c != EOF) {
             if (i < 99) t.lexeme[i++] = c;
             if (c == '\n') l->line_num++; 
         }
@@ -65,6 +65,8 @@ token next_token(Lexer *l) {
             t.type = TKN_LIT_STRING;
         } else {
             t.type = TKN_ERROR;
+            t.lexeme[i] = '\0';
+            if (c == '\n') unget_char(l);
         }
         return t;
     }
