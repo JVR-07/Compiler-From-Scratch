@@ -276,25 +276,38 @@ void parse_if(Parser *p) {
 
 void parse_proc(Parser *p) {
     match(p, TKN_PROC);
+
     if (p->current_token.type == TKN_IDENTIFIER) {
         install_symbol(p->current_token.lexeme, TKN_IDENTIFIER, TKN_PROC);
         match(p, TKN_IDENTIFIER);
     }
     
     enter_scope();
+
     match(p, TKN_LPAREN);
     parse_parameters(p);
-    match(p, TKN_RPAREN);
+
+    if (p->has_error) {
+        while (p->current_token.type != TKN_LBRACE && p->current_token.type != TKN_EOF) {
+            advance(p);
+        }
+    } else {
+        match(p, TKN_RPAREN);
+    }
+    
     parse_block(p);
+    
     exit_scope();
 }
 
 void parse_parameters(Parser *p) {
     if (p->current_token.type == TKN_RPAREN) return;
 
-    do {
+    while (p->current_token.type != TKN_RPAREN && p->current_token.type != TKN_EOF) {
+        
         if (p->current_token.type == TKN_INT || p->current_token.type == TKN_FLOAT || 
             p->current_token.type == TKN_STRING || p->current_token.type == TKN_BOOL) {
+            
             token type_tkn = p->current_token;
             advance(p);
             
@@ -302,17 +315,24 @@ void parse_parameters(Parser *p) {
                 install_symbol(p->current_token.lexeme, TKN_IDENTIFIER, type_tkn.type);
             }
             match(p, TKN_IDENTIFIER);
+
         } else {
-            parser_error(p, "Se esperaba un tipo de dato en parametro");
-            break;
+            parser_error(p, "Se esperaba un tipo de dato");
+            advance(p);
         }
 
         if (p->current_token.type == TKN_COMMA) {
             advance(p); 
-        } else {
+
+            if (p->current_token.type == TKN_RPAREN) {
+                parser_error(p, "Se esperaba un parámetro después de la coma");
+                break; 
+            }
+        } else if (p->current_token.type != TKN_RPAREN) {
+            parser_error(p, "Se esperaba ',' o ')'");
             break;
         }
-    } while (1);
+    }
 }
 
 void parse_block(Parser *p) {
