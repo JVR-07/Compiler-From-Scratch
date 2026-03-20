@@ -1,0 +1,12 @@
+int A = 10;
+int B = 8;
+float C;
+int D;
+float E = 15 * 10 + (B / A);
+
+C = A / B;
+D = A / B;
+
+if(int int i = 0, i < 10, i++) {
+    read int x;
+}

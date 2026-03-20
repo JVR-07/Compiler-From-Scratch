@@ -1,0 +1,14 @@
+int A = 10;
+int B = 20;
+string Cadena = "Cadena";
+int C;
+int D;
+int E;
+
+C = A + B;
+
+D = 3 + ( 10 / 2) * A - 1 + (-10 / B ) * 2;
+
+E = ((4 + 3 + 4) * 2 ^ 5 * 4) + ( 3 + 4 * 6 - 2);
+
+float mathOp3 = ((4 + 3 + 4) * 2 ^ 5 * 4) + ( 3 + 4 * 6 - 2);
