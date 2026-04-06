@@ -8,6 +8,7 @@
 void init_parser(Parser *p, Lexer *l) {
     p->lexer = l;
     p->has_error = 0;
+    p->is_global_scope = 1;
     advance(p);
 }
 
@@ -129,8 +130,15 @@ void parse_instruction(Parser *p) {
             match(p, TKN_SEMICOLON);
             break;
         case TKN_PROC:
-            parse_proc(p);
-            match(p, TKN_SEMICOLON);
+            if (!p->is_global_scope) {
+                parser_error(p, "'proc' solo puede declararse en el scope global");
+                while (p->current_token.type != TKN_SEMICOLON && p->current_token.type != TKN_EOF) {
+                    advance(p);
+                }
+            } else {
+                parse_proc(p);
+                match(p, TKN_SEMICOLON);
+            }
             break;
         case TKN_IDENTIFIER:
             parse_assignment_or_unary(p);
@@ -340,6 +348,9 @@ void parse_block(Parser *p) {
     
     enter_scope();
 
+    int prev_global = p->is_global_scope;
+    p->is_global_scope = 0;
+
     while (p->current_token.type != TKN_RBRACE && p->current_token.type != TKN_EOF && !p->has_error) {
         
         parse_instruction(p);
@@ -348,6 +359,9 @@ void parse_block(Parser *p) {
             synchronize(p);
         }
     }
+
+    p->is_global_scope = prev_global;
+
     exit_scope();
     
     match(p, TKN_RBRACE);

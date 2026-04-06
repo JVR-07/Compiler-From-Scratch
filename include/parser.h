@@ -9,6 +9,7 @@ typedef struct {
     Lexer *lexer;
     token current_token;
     int has_error;
+    int is_global_scope;
 } Parser;
 
 // Funciones de inicializacion y control
