@@ -171,7 +171,7 @@ void parse_declaration(Parser *p) {
         
         ASTNode *assign = create_node(NODE_ASSIGN, assign_tkn);
         assign->left = create_node(NODE_IDENTIFIER, id_tkn);
-        assign->right = parse_expression(p);
+        assign->right = parse_logical_or(p);
         
         process_expression(assign, p);
     }
@@ -187,7 +187,7 @@ void parse_assignment_or_unary(Parser *p) {
         ASTNode *assign = create_node(NODE_ASSIGN, assign_tkn);
         assign->left = id_node;
         advance(p);
-        assign->right = parse_expression(p);
+        assign->right = parse_logical_or(p);
         process_expression(assign, p);
     } else if (p->current_token.type == TKN_SELF_PLUS || p->current_token.type == TKN_SELF_MINUS) {
         token unary_tkn = p->current_token;
@@ -223,7 +223,7 @@ void parse_write(Parser *p) {
         return;
     }
 
-    ASTNode *expr = parse_expression(p);
+    ASTNode *expr = parse_logical_or(p);
 
     if(expr) {
         process_expression(expr, p);
@@ -244,7 +244,7 @@ void parse_for(Parser *p) {
     }
     
     match(p, TKN_COMMA);
-    ASTNode *cond = parse_logical_expression(p);
+    ASTNode *cond = parse_logical_or(p);
     process_expression(cond, p);
     
     match(p, TKN_COMMA);
@@ -262,7 +262,7 @@ void parse_while(Parser *p) {
     if(p->current_token.type == TKN_LBRACE) {
         parser_error(p, "Se esperaba una comparación");
     } else {
-        ASTNode *cond = parse_logical_expression(p);
+        ASTNode *cond = parse_logical_or(p);
         process_expression(cond, p);
     }
 
@@ -275,7 +275,7 @@ void parse_if(Parser *p) {
     if(p->current_token.type == TKN_LBRACE) {
         parser_error(p, "Se esperaba una comparación");
     } else {
-        ASTNode *cond = parse_logical_expression(p);
+        ASTNode *cond = parse_logical_or(p);
         process_expression(cond, p);
     }
 
@@ -367,6 +367,43 @@ void parse_block(Parser *p) {
     match(p, TKN_RBRACE);
 }
 
+ASTNode* parse_logical_or(Parser *p) {
+    ASTNode *node = parse_logical_and(p);
+
+    while(p->current_token.type == TKN_OR) {
+        token op = p->current_token;
+        advance(p);
+        node = create_binary_node(op, node, parse_logical_and(p));
+    }
+    return node;
+}
+
+ASTNode* parse_logical_and(Parser *p) {
+    ASTNode *node = parse_relational(p);
+
+    while(p->current_token.type == TKN_AND) {
+        token op = p->current_token;
+        advance(p);
+        node = create_binary_node(op, node, parse_relational(p));
+    }
+    return node;
+}
+
+ASTNode* parse_relational(Parser *p) {
+    ASTNode *node1 = parse_expression(p);
+    
+    if (p->current_token.type == TKN_GREATER || p->current_token.type == TKN_LESS ||
+        p->current_token.type == TKN_GREATER_EQUAL || p->current_token.type == TKN_LESS_EQUAL ||
+        p->current_token.type == TKN_EQUAL || p->current_token.type == TKN_NOT_EQUAL) {
+        
+        token op_tkn = p->current_token;
+        advance(p);
+        ASTNode *node2 = parse_expression(p);
+        return create_binary_node(op_tkn, node1, node2);
+    }
+    return node1;
+}
+
 ASTNode* parse_logical_expression(Parser *p) {
     ASTNode *node1 = parse_expression(p);
     
@@ -446,6 +483,14 @@ ASTNode* parse_power(Parser *p) {
 
 ASTNode* parse_factor(Parser *p) {
     token t = p->current_token;
+
+    if (t.type == TKN_NOT) {
+        advance(p);
+        ASTNode *operand = parse_factor(p);
+        ASTNode *not_node = create_node(NODE_UNARY_OP, t);
+        not_node->left = operand;
+        return not_node;
+    }
 
     if (t.type == TKN_LIT_INT || 
         t.type == TKN_LIT_FLOAT || 

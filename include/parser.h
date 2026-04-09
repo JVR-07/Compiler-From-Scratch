@@ -40,7 +40,9 @@ void parse_block(Parser *p);
 void parse_parameters(Parser *p);
 
 // Operaciones y expresiones lógicas/aritméticas
-ASTNode* parse_logical_expression(Parser *p);
+ASTNode* parse_logical_or(Parser *p);
+ASTNode* parse_logical_and(Parser *p);
+ASTNode* parse_relational(Parser *p);
 ASTNode* parse_unary_operation(Parser *p);
 ASTNode* parse_expression(Parser *p);
 ASTNode* parse_term(Parser *p);
