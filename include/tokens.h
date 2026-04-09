@@ -32,6 +32,9 @@ typedef enum {
     TKN_NOT_EQUAL,
     TKN_SELF_PLUS,
     TKN_SELF_MINUS,
+    TKN_AND,
+    TKN_OR,
+    TKN_NOT,
 
     // Cuerpos y bloques
     TKN_SEMICOLON,

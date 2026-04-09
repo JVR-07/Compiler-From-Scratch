@@ -189,6 +189,28 @@ handle_operators:
             }
             break;
 
+        case '&':
+            c = get_char(l);
+            if (c == '&') {
+                t.type = TKN_AND;
+                strcat(t.lexeme, "&");
+            } else {
+                unget_char(l);
+                t.type = TKN_ERROR;
+            }
+            break;
+
+        case '|':
+            c = get_char(l);
+            if (c == '|') {
+                t.type = TKN_OR;
+                strcat(t.lexeme, "|");
+            } else {
+                unget_char(l);
+                t.type = TKN_ERROR;
+            }
+            break;
+
         case '!':
             c = get_char(l);
             if (c == '=') {
@@ -196,7 +218,7 @@ handle_operators:
                 strcat(t.lexeme, "=");
             } else {
                 unget_char(l);
-                t.type = TKN_ERROR;
+                t.type = TKN_NOT;
             }
             break;
 
@@ -238,6 +260,9 @@ const char* token_type_to_str(tokenType t) {
         case TKN_LESS: return "LESS";
         case TKN_LESS_EQUAL: return "LESS_EQUAL";
         case TKN_NOT_EQUAL: return "NOT_EQUAL";
+        case TKN_AND: return "AND";
+        case TKN_OR: return "OR";
+        case TKN_NOT: return "NOT";
         // Cuerpos y bloques
         case TKN_SEMICOLON: return "SEMICOLON";
         case TKN_LPAREN: return "LEFT_PAREN";
