@@ -168,8 +168,26 @@ handle_operators:
         case ')': t.type = TKN_RPAREN; break;
         case '{': t.type = TKN_LBRACE; break;
         case '}': t.type = TKN_RBRACE; break;
-        case '<': t.type = TKN_LESS; break;
-        case '>': t.type = TKN_GREATER; break;
+        case '<': 
+            c = get_char(l);
+            if (c == '=') {
+                t.type = TKN_LESS_EQUAL;
+                strcat(t.lexeme, "=");
+            } else {
+                unget_char(l);
+                t.type = TKN_LESS;
+            }
+            break;
+        case '>': 
+            c = get_char(l);
+            if (c == '=') {
+                t.type = TKN_GREATER_EQUAL;
+                strcat(t.lexeme, "=");
+            } else {
+                unget_char(l);
+                t.type = TKN_GREATER;
+            }
+            break;
         case ',': t.type = TKN_COMMA; break;
         
         case '=': 
@@ -177,12 +195,6 @@ handle_operators:
             if (c == '=') {
                 t.type = TKN_EQUAL;
                 strcat(t.lexeme, "=");
-            } else if (c == '<') {
-                t.type = TKN_LESS_EQUAL;
-                strcat(t.lexeme, "<");
-            } else if (c == '>') {
-                t.type = TKN_GREATER_EQUAL;
-                strcat(t.lexeme, ">");
             } else {
                 unget_char(l);
                 t.type = TKN_ASSIGN;
