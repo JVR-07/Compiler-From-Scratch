@@ -20,13 +20,14 @@ void enter_scope() {
 }
 
 void exit_scope() {
-    for (int i = symbol_count - 1; i >= 0; i--) {
-        
-        if (symbol_table[i].scope_level == current_scope) {
-            symbol_count--;
+    int new_count = 0;
+    for (int i = 0; i < symbol_count; i++) {
+        if (symbol_table[i].scope_level < current_scope) {
+            symbol_table[new_count++] = symbol_table[i];
         }
     }
-    
+    symbol_count = new_count;
+
     if (current_scope > 0) {
         current_scope--;
     }
