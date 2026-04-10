@@ -508,7 +508,7 @@ ASTNode* parse_factor(Parser *p) {
         return create_node(node_type, t);
     } else if (t.type == TKN_LPAREN) {
         advance(p);
-        ASTNode *node = parse_expression(p);
+        ASTNode *node = parse_logical_or(p);
         match(p, TKN_RPAREN);
         return node;
     }

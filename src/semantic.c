@@ -52,11 +52,12 @@ void validate_node(ASTNode *node) {
             if (node->t.type == TKN_NOT) {
                 
                 if (operand_type != TKN_BOOL && operand_type != TKN_ERROR) {
-                    semantic_error(node->t.line, "Operación unaria lógica ! sbore tipo no booleano", node->t.lexeme);
+                    semantic_error(node->t.line, "Operación unaria lógica ! sobre tipo no booleano", node->t.lexeme);
                     node->eval_type = TKN_ERROR;
                 } else {
                     node->eval_type = TKN_BOOL;
                 }
+                break;
             }
             else if (node->t.type == TKN_SELF_PLUS || node->t.type == TKN_SELF_MINUS) {
 
