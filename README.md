@@ -1,88 +1,116 @@
-# Compiler From Scratch
+# 🚀 Compiler From Scratch
 
 ![Wallpaper](https://raw.githubusercontent.com/JVR-07/College-Projects/refs/heads/main/Resource/wallpaper_itt.png)
 
 ---
 
-**Autor:** Javier Machado Sánchez
+### 👤 Información del Proyecto
 
-**Institución:** Instituto Tecnológico de Tijuana
+- **Autor:** Javier Machado Sánchez
+- **Institución:** Instituto Tecnológico de Tijuana
+- **Materia:** Lenguajes y Autómatas II
+- **Profesor:** Erasmo Estrada Peña
 
-**Materia:** Lenguajes y Autómatas II.
+---
 
-**Profesor:** Erasmo Estrada Peña.
+## 📖 Introducción
 
-## Compilador Básico
+Este es un proyecto educativo enfocado en la construcción de un compilador funcional desde sus cimientos. El objetivo es profundizar en la teoría de lenguajes, autómatas y la arquitectura interna de las herramientas de desarrollo modernas.
 
-Este es un proyecto con fines educativos para crear un compilador desde cero, implementando cada una de sus fases.
+## 🛠️ Estado de las Fases
 
-## Fases del Compilador
+| Fase | Descripción                         |     Estado     |
+| :--- | :---------------------------------- | :------------: |
+| 1    | **Análisis Léxico**                 |       ✅       |
+| 2    | **Análisis Sintáctico**             |       ✅       |
+| 3    | **Análisis Semántico**              |       ✅       |
+| 4    | **Generación de Código Intermedio** | 🏗️ En Progreso |
+| 5    | **Optimización de Código**          |  ⏳ Pendiente  |
 
-El compilador se desarrollará en 5 fases principales:
+---
 
-1. **Análisis Léxico:** Completado.
-2. **Análisis Sintáctico:** Completado.
-3. **Análisis Semántico:** Completado.
-4. **Generación de Código Intermedio:** Pendiente.
-5. **Optimización de Código:** Pendiente.
-
-## Estructura del Proyecto
+## 📂 Estructura del Proyecto
 
 ```bash
 /
-├── bin/              # Archivos ejecutables generados
-├── obj/              # Archivos de objeto compilados
-├── src/              # Código fuente de las fases implementadas
-│   ├── main.c        # Punto de entrada y orquestador del compilador
-│   ├── lexer.c       # Manejo de la fase 1 (Tokenización)
-│   ├── parser.c      # Manejo de la fase 2 (Generador Sintáctico y ensamble de nodos)
-│   ├── ast.c         # Estructura del Árbol de Sintaxis Abstracta (AST)
-│   ├── semantic.c    # Manejo de la fase 3 (Comprobación de Tipos y Análisis)
-│   └── symbols.c     # Manejo de jerarquías y Tabla de Símbolos
-├── include/          # Archivos de cabecera (.h)
-│   ├── lexer.h
-│   ├── parser.h
-│   ├── ast.h
-│   ├── semantic.h
-│   ├── tokens.h
-│   └── symbols.h
-├── .gitignore
-├── LICENSE
-└── Makefile          # Script de compilación rápida para GCC
+├── bin/              # Ejecutables generados
+├── obj/              # Archivos objeto (.o)
+├── src/              # Código fuente (.c)
+│   ├── main.c        # Orquestador del flujo
+│   ├── lexer.c       # Tokenización (DFA)
+│   ├── parser.c      # Árbol de Sintaxis Abstracta (AST)
+│   ├── ast.c         # Estructuras del Árbol
+│   ├── semantic.c    # Comprobación de tipos y reglas
+│   └── symbols.c     # Gestión de ámbitos y tabla de símbolos
+├── include/          # Cabeceras (.h)
+└── Makefile          # Automatización de construcción
 ```
 
-## Fases Implementadas
+---
 
-### Fase 1: Análisis Léxico
+## 🔍 Fases Implementadas
 
-El analizador léxico es la primera fase del compilador. Su principal función es leer los caracteres de entrada desde el archivo fuente y elaborar como salida una secuencia de componentes léxicos (Tokens) que utilizará la siguiente fase. Ignora los espacios en blanco, tabulaciones y saltos de línea irrelevantes. Implementado en `lexer.c` a través de un autómata finito determinista básico.
+### 🔹 Fase 1: Análisis Léxico
 
-### Fase 2: Análisis Sintáctico
+Transforma el flujo de caracteres en **Tokens**. Utiliza un Autómata Finito Determinista (DFA) para reconocer palabras reservadas, identificadores, literales y operadores, filtrando elementos irrelevantes como espacios y comentarios.
 
-El analizador sintáctico recibe los tokens de la fase 1 y agrupa estos componentes en frases gramaticales complejas para producir la salida estructurada.
-En esta fase representamos nuestra semántica natural mediante un **Árbol de Sintaxis Abstracta (AST)** bidimensional, modelando encapsulación de condicionales lógicos (`if`, `while`, `for`), expresiones matemáticas jerárquicas, y declaración de bloques/funciones. Las reglas gramaticales en `parser.c` mapean el código consumido a una estructura enlazada en memoria mediante un motor de Descenso Recursivo.
+### 🔹 Fase 2: Análisis Sintáctico
 
-### Fase 3: Análisis Semántico
+Construye un **Árbol de Sintaxis Abstracta (AST)** mediante la técnica de **Descenso Recursivo**. Valida que la secuencia de tokens siga la gramática definida, manejando precedencia de operadores y estructuras de control (`if`, `while`, `for`).
 
-El analizador semántico recorre de forma _Bottom-Up_ (Post-fix) el AST resultante de la fase 2 para realizar comprobaciones de contexto y recopilar información de los tipos.
-A través del módulo `semantic.c`, el compilador cruza los estatutos con los tipos registrados en la red y valida la sanidad del programa mediante "Type Checking", identificando errores lógicos (e.g. sumar una cadena literal a un identificador booleano), uso de variables no declaradas o invocaciones a variables que ya murieron o se encuentran fuera de su ámbito/stack (`current_scope`).
+### 🔹 Fase 3: Análisis Semántico
 
-## Cómo Compilar y Ejecutar
+Realiza la validación lógica del programa recorriendo el AST de forma _Bottom-Up_.
 
-Para compilar el proyecto, asegúrate de tener una distribución con `gcc` y `make` instalado, y ejecuta el siguiente comando:
+- **Type Checking:** Valida compatibilidad de tipos en expresiones y asignaciones (ej. no sumar `string` con `int`).
+- **Gestión de Ámbitos (Scoping):** Controla la visibilidad de variables mediante una tabla de símbolos jerárquica, permitiendo variables locales y globales.
+- **Detección de Errores:** Identifica variables no declaradas o usos inválidos de operadores.
+
+---
+
+## 🏗️ Siguiente Paso: Fase 4 - Generación de Código Intermedio
+
+En esta etapa, el compilador transformará el AST validado en una representación intermedia, usualmente **Código de Tres Direcciones (TAC)**. Esta representación es independiente de la arquitectura destino y facilita la optimización posterior.
+
+---
+
+## 💻 Ejemplo de Código Soportado
+
+El compilador actualmente es capaz de procesar estructuras complejas como esta:
+
+```cpp
+int A = 10;
+float B = 20.5;
+bool flag = true;
+
+if (A > 5 && flag) {
+    B = B + A * 2; // Conversión implícita de int a float
+}
+```
+
+---
+
+## 🚀 Cómo Empezar
+
+### Requisitos
+
+- `gcc` (GNU Compiler Collection)
+- `make`
+
+### Compilación
 
 ```bash
 make
 ```
 
-Esto generará los archivos objeto y finalmente un ejecutable en la carpeta `bin/`.
-
-Para probar el compilador y analizar un archivo de texto con código fuente, invócalo como argumento:
+### Ejecución
 
 ```bash
-./bin/Compiler <archivo_de_entrada>
+./bin/Compiler <tu_archivo_fuente>.txt
 ```
 
-## Licencia
+---
 
-Este proyecto está bajo la licencia GPL. Consulta el archivo [LICENCIA](./LICENSE) para más detalles.
+## 📄 Licencia
+
+Este proyecto se distribuye bajo la licencia **GPL**. Para más detalles, consulta el archivo [LICENSE](./LICENSE).
