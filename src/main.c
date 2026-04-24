@@ -2,9 +2,9 @@
 #include "lexer.h"
 #include "symbols.h"
 #include "parser.h"
-
 #include "ast.h"
 #include "semantic.h"
+#include "codegen.h"
 
 int main(int argc, char *argv[]) {
     if (argc < 2) {
@@ -22,15 +22,26 @@ int main(int argc, char *argv[]) {
     init_lexer(&lexer, f);
     init_symbol_table();
 
+    init_codegen();
+
     Parser parser;
     init_parser(&parser, &lexer);
         
     parse_program(&parser);
     
-    print_symbol_table();
+    finalize_codegen();
+
+    // print_symbol_table();  // COMENTADO: solo mostrar ensamblador
 
     close_lexer(&lexer);
     fclose(f);
+
+    if (codegen_errors > 0) {
+        fprintf(stderr,
+            "\n\033[1;33mGeneraci\u00f3n abortada\033[0m: %d error(es) de c\u00f3digo encontrados.\n",
+            codegen_errors);
+        return 1;
+    }
     
     return 0;
 }

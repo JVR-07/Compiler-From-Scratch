@@ -4,6 +4,7 @@
 #include "symbols.h"
 #include "ast.h"
 #include "semantic.h"
+#include "codegen.h"
 
 void init_parser(Parser *p, Lexer *l) {
     p->lexer = l;
@@ -91,13 +92,16 @@ void parse_program(Parser *p) {
 void process_expression(ASTNode *node, Parser *p) {
     if (!node) return;
 
-    printf("\n--> Arbol de la Expresión:\n");
-    print_ast(node, 0, "ROOT");
+    // printf("\n--> Arbol de la Expresión:\n");  // COMENTADO: solo mostrar ensamblador
+    // print_ast(node, 0, "ROOT");                 // COMENTADO: solo mostrar ensamblador
 
     if (!p->has_error) {
         analyze_semantic(node);
+        if (semantic_errors == 0) {
+            gen_expr(node);
+        }
     } else {
-        printf("\n\033[1;33mAviso\033[0m: Análisis Semántico omitido por errores previos.\n");
+        // printf("\n\033[1;33mAviso\033[0m: Análisis Semántico omitido.\n"); // COMENTADO
     }
     
     free_ast(node);
@@ -159,6 +163,7 @@ void parse_declaration(Parser *p) {
     if (p->current_token.type == TKN_IDENTIFIER) {
         id_tkn = p->current_token;
         install_symbol(id_tkn.lexeme, TKN_IDENTIFIER, type_tkn.type);
+        alloc_var(id_tkn.lexeme, type_tkn.type);
         advance(p);
     } else {
         parser_error(p, "Se esperaba un nombre de variable");
