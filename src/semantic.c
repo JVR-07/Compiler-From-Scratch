@@ -146,6 +146,28 @@ void validate_node(ASTNode *node) {
             break;
         }
 
+        case NODE_READ: {
+            if (!node->left || node->left->type != NODE_IDENTIFIER) {
+                semantic_error(node->t.line, "Operación read requiere un identificador", NULL);
+                node->eval_type = TKN_ERROR;
+            } else {
+                node->eval_type = node->left->eval_type;
+            }
+            break;
+        }
+
+        case NODE_WRITE: {
+            if (!node->left) {
+                semantic_error(node->t.line, "Operación write sin argumento", NULL);
+                node->eval_type = TKN_ERROR;
+            } else if (node->left->eval_type == TKN_ERROR) {
+                node->eval_type = TKN_ERROR;
+            } else {
+                node->eval_type = node->left->eval_type;
+            }
+            break;
+        }
+
         default:
             break;
     }
