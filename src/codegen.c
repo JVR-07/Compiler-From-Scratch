@@ -244,6 +244,21 @@ char* gen_expr(ASTNode *node) {
                     case TKN_MULT:  emit("    mulsd   xmm0, xmm1"); break;
                     case TKN_DIV:   emit("    divsd   xmm0, xmm1"); break;
                     case TKN_POWER: emit("    call    pow");         break;
+                    case TKN_EQUAL:
+                    case TKN_NOT_EQUAL:
+                    case TKN_LESS:
+                    case TKN_LESS_EQUAL:
+                    case TKN_GREATER:
+                    case TKN_GREATER_EQUAL:
+                        emit("    ucomisd xmm0, xmm1");
+                        if (node->t.type == TKN_EQUAL)           emit("    sete    al");
+                        else if (node->t.type == TKN_NOT_EQUAL)  emit("    setne   al");
+                        else if (node->t.type == TKN_LESS)       emit("    setb    al");
+                        else if (node->t.type == TKN_LESS_EQUAL) emit("    setbe   al");
+                        else if (node->t.type == TKN_GREATER)    emit("    seta    al");
+                        else if (node->t.type == TKN_GREATER_EQUAL) emit("    setae   al");
+                        emit("    movzx   eax, al");
+                        return "eax";
                     default:
                         codegen_error(node->t.line, "Operador float no soportado:", node->t.lexeme);
                 }
@@ -296,6 +311,29 @@ char* gen_expr(ASTNode *node) {
                         emit(".L%d:", lbl_end);
                         break;
                     }
+
+                    case TKN_EQUAL:
+                    case TKN_NOT_EQUAL:
+                    case TKN_LESS:
+                    case TKN_LESS_EQUAL:
+                    case TKN_GREATER:
+                    case TKN_GREATER_EQUAL:
+                        emit("    cmp     eax, ebx");
+                        if (node->t.type == TKN_EQUAL)           emit("    sete    al");
+                        else if (node->t.type == TKN_NOT_EQUAL)  emit("    setne   al");
+                        else if (node->t.type == TKN_LESS)       emit("    setl    al");
+                        else if (node->t.type == TKN_LESS_EQUAL) emit("    setle   al");
+                        else if (node->t.type == TKN_GREATER)    emit("    setg    al");
+                        else if (node->t.type == TKN_GREATER_EQUAL) emit("    setge   al");
+                        emit("    movzx   eax, al");
+                        break;
+
+                    case TKN_AND:
+                        emit("    and     eax, ebx");
+                        break;
+                    case TKN_OR:
+                        emit("    or      eax, ebx");
+                        break;
 
                     default:
                         codegen_error(node->t.line, "Operador no soportado:", node->t.lexeme);
