@@ -8,7 +8,9 @@ typedef enum {
     NODE_LITERAL,
     NODE_IDENTIFIER,
     NODE_UNARY_OP,
-    NODE_ASSIGN
+    NODE_ASSIGN,
+    NODE_READ,
+    NODE_WRITE
 } NodeType;
 
 typedef struct ASTNode {
