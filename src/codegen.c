@@ -158,6 +158,16 @@ char* gen_expr(ASTNode *node) {
                     emit("    mov     eax, 0");
                     return "eax";
 
+                case TKN_LIT_STRING: {
+                    int lbl = new_label();
+                    emit("    .section .rodata");
+                    emit(".str_%d:", lbl);
+                    emit("    .string %s", node->t.lexeme);
+                    emit("    .section .text");
+                    emit("    lea     rax, [rip + .str_%d]", lbl);
+                    return "rax";
+                }
+
                 default:
                     codegen_error(node->t.line, "Literal no soportado.", node->t.lexeme);
                     emit("    # ERROR: literal no soportado");
@@ -328,6 +338,61 @@ char* gen_expr(ASTNode *node) {
             } else {
                 codegen_error(node->t.line, "Operador unario no reconocido:", node->t.lexeme);
                 emit("    # ERROR: operador unario no reconocido");
+            }
+            return "eax";
+        }
+
+        case NODE_WRITE: {
+            if (!node->left) return "eax";
+            gen_expr(node->left);
+            tokenType type = node->left->eval_type;
+            
+            if (type == TKN_INT) {
+                emit("    mov     esi, eax");
+                emit("    lea     rdi, [rip + fmt_int]");
+                emit("    mov     eax, 0");
+                emit("    call    printf");
+            } else if (type == TKN_FLOAT) {
+                emit("    lea     rdi, [rip + fmt_float]");
+                emit("    mov     eax, 1");
+                emit("    call    printf");
+            } else if (type == TKN_BOOL) {
+                emit("    mov     esi, eax");
+                emit("    lea     rdi, [rip + fmt_bool]");
+                emit("    mov     eax, 0");
+                emit("    call    printf");
+            } else if (type == TKN_STRING) {
+                emit("    mov     rsi, rax");
+                emit("    lea     rdi, [rip + fmt_str]");
+                emit("    mov     eax, 0");
+                emit("    call    printf");
+            }
+            return "eax";
+        }
+
+        case NODE_READ: {
+            if (!node->left || node->left->type != NODE_IDENTIFIER) return "eax";
+            const char* var_name = node->left->t.lexeme;
+            tokenType type = get_var_type(var_name);
+            int offset = get_var_offset(var_name);
+
+            if (type == TKN_ERROR) {
+                codegen_error(node->t.line, "Variable no registrada en codegen:", var_name);
+                return "eax";
+            }
+
+            if (type == TKN_INT || type == TKN_BOOL) {
+                emit("    lea     rsi, [rbp%d]", offset);
+                emit("    lea     rdi, [rip + fmt_read_int]");
+                emit("    mov     eax, 0");
+                emit("    call    scanf");
+            } else if (type == TKN_FLOAT) {
+                emit("    lea     rsi, [rbp%d]", offset);
+                emit("    lea     rdi, [rip + fmt_read_float]");
+                emit("    mov     eax, 0");
+                emit("    call    scanf");
+            } else {
+                codegen_error(node->t.line, "Lectura no soportada para este tipo.", var_name);
             }
             return "eax";
         }
