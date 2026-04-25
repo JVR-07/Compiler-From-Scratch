@@ -207,20 +207,24 @@ void parse_assignment_or_unary(Parser *p) {
 }
 
 void parse_read(Parser *p) {
+    token read_tkn = p->current_token;
     match(p, TKN_READ);
     
     if(p->current_token.type == TKN_IDENTIFIER) {
-        ASTNode *node = create_node(NODE_IDENTIFIER, p->current_token);
+        ASTNode *id_node = create_node(NODE_IDENTIFIER, p->current_token);
+        ASTNode *read_node = create_node(NODE_READ, read_tkn);
+        read_node->left = id_node;
     
         advance(p);
 
-        process_expression(node, p);
+        process_expression(read_node, p);
     } else if (p->current_token.type != TKN_SEMICOLON) {
         parser_error(p, "Se esperaba un identificador o ';' después de 'read'");
     }
 }
 
 void parse_write(Parser *p) {
+    token write_tkn = p->current_token;
     match(p, TKN_WRITE);
 
     if (p->current_token.type == TKN_SEMICOLON) {
@@ -231,7 +235,9 @@ void parse_write(Parser *p) {
     ASTNode *expr = parse_logical_or(p);
 
     if(expr) {
-        process_expression(expr, p);
+        ASTNode *write_node = create_node(NODE_WRITE, write_tkn);
+        write_node->left = expr;
+        process_expression(write_node, p);
     }
 }
 
