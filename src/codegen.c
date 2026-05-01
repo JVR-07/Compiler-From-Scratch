@@ -125,6 +125,22 @@ void finalize_codegen() {
 
 static int is_float(tokenType t) { return t == TKN_FLOAT; }
 
+void gen_cond_jump(ASTNode *cond, int lbl_false) {
+    gen_expr(cond);
+    emit("    cmp     eax, 0");
+    emit("    je      .L%d", lbl_false);
+}
+
+void gen_jump(int lbl) {
+    emit("    jmp     .L%d", lbl);
+}
+
+void gen_label(int lbl) {
+    emit(".L%d:", lbl);
+}
+
+
+
 char* gen_expr(ASTNode *node) {
     if (!node) {
         codegen_error(0, "Nodo AST nulo en gen_expr.", NULL);
