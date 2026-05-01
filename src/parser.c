@@ -52,6 +52,7 @@ void synchronize(Parser *p) {
             case TKN_PROC:
             case TKN_WRITE:
             case TKN_READ:
+            case TKN_ELSE:
             case TKN_RBRACE:
                 return;
 

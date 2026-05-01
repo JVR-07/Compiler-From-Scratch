@@ -123,6 +123,7 @@ token next_token(Lexer *l) {
         else if (strcmp(t.lexeme, "true") == 0) t.type = TKN_LIT_TRUE; 
         else if (strcmp(t.lexeme, "false") == 0) t.type = TKN_LIT_FALSE;
         else if (strcmp(t.lexeme, "if") == 0) t.type = TKN_IF;
+        else if (strcmp(t.lexeme, "else") == 0) t.type = TKN_ELSE;
         else if (strcmp(t.lexeme, "write") == 0) t.type = TKN_WRITE;
         else if (strcmp(t.lexeme, "read") == 0) t.type = TKN_READ;
         else if (strcmp(t.lexeme, "while") == 0) t.type = TKN_WHILE;

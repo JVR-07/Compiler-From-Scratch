@@ -16,7 +16,6 @@ typedef enum {
     TKN_LIT_TRUE,
     TKN_LIT_FALSE,
     
-
     // Operadores
     TKN_PLUS, 
     TKN_MINUS,
@@ -46,6 +45,7 @@ typedef enum {
 
     // Estructuras de control y ciclos
     TKN_IF,
+    TKN_ELSE,
     TKN_FOR,
     TKN_WHILE,
 
