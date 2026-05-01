@@ -22,4 +22,10 @@ void emit(const char *fmt, ...);
 
 void codegen_error(int line, const char *msg, const char *detail);
 
+// Control de flujo: usadas por el parser para if/while/for
+// sin que el parser emita assembly directamente.
+void gen_cond_jump(ASTNode *cond, int lbl_false);  // evalua cond, salta si es 0
+void gen_jump(int lbl);                             // salto incondicional
+void gen_label(int lbl);                            // emite etiqueta .Lx:
+
 #endif

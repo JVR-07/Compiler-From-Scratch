@@ -257,41 +257,90 @@ void parse_for(Parser *p) {
     
     match(p, TKN_COMMA);
     ASTNode *cond = parse_logical_or(p);
-    process_expression(cond, p);
-    
+
     match(p, TKN_COMMA);
     ASTNode *inc = parse_unary_operation(p);
-    process_expression(inc, p);
-    
+
+    int lbl_start = new_label();
+    int lbl_end   = new_label();
+
+    gen_label(lbl_start);
+
+    if (cond && !p->has_error) {
+        analyze_semantic(cond);
+        if (semantic_errors == 0)
+            gen_cond_jump(cond, lbl_end);
+        free_ast(cond);
+    }
+
     parse_block(p);
-    
+
+    if (inc && !p->has_error) {
+        analyze_semantic(inc);
+        if (semantic_errors == 0)
+            gen_expr(inc);
+        free_ast(inc);
+    }
+
+    gen_jump(lbl_start);
+    gen_label(lbl_end);
+
     exit_scope();
 }
 
 void parse_while(Parser *p) {
     match(p, TKN_WHILE);
 
-    if(p->current_token.type == TKN_LBRACE) {
-        parser_error(p, "Se esperaba una comparación");
-    } else {
-        ASTNode *cond = parse_logical_or(p);
-        process_expression(cond, p);
+    ASTNode *cond = parse_logical_or(p);
+
+    int lbl_start = new_label();
+    int lbl_end   = new_label();
+
+    gen_label(lbl_start);
+
+    if (cond && !p->has_error) {
+        analyze_semantic(cond);
+        if (semantic_errors == 0)
+            gen_cond_jump(cond, lbl_end);
+        free_ast(cond);
+    } else if (p->current_token.type == TKN_LBRACE) {
+        parser_error(p, "Se esperaba una condicion en while");
     }
 
     parse_block(p);
+
+    gen_jump(lbl_start);
+    gen_label(lbl_end);
 }
 
 void parse_if(Parser *p) {
     match(p, TKN_IF);
 
-    if(p->current_token.type == TKN_LBRACE) {
-        parser_error(p, "Se esperaba una comparación");
-    } else {
-        ASTNode *cond = parse_logical_or(p);
-        process_expression(cond, p);
+    ASTNode *cond = parse_logical_or(p);
+
+    int lbl_else = new_label();
+    int lbl_end  = new_label();
+
+    if (cond && !p->has_error) {
+        analyze_semantic(cond);
+        if (semantic_errors == 0)
+            gen_cond_jump(cond, lbl_else);
+        free_ast(cond);
+    } else if (p->current_token.type == TKN_LBRACE) {
+        parser_error(p, "Se esperaba una condicion en if");
     }
 
     parse_block(p);
+
+    if (p->current_token.type == TKN_ELSE) {
+        advance(p);
+        gen_jump(lbl_end);
+        gen_label(lbl_else);
+        parse_block(p);
+        gen_label(lbl_end);
+    } else {
+        gen_label(lbl_else);
+    }
 }
 
 void parse_proc(Parser *p) {
