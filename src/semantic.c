@@ -69,6 +69,7 @@ void validate_node(ASTNode *node) {
                 }
                 break;
             }
+            break;
         }
 
         case NODE_BINARY_OP: {
