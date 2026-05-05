@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "parser.h"
 #include "symbols.h"
 #include "ast.h"
@@ -201,10 +202,39 @@ void parse_assignment_or_unary(Parser *p) {
         unary->left = id_node;
         advance(p);
         process_expression(unary, p);
+    } else if (p->current_token.type == TKN_LPAREN) {
+        free_ast(id_node);
+        parse_proc_call(p, id_tkn);
     } else {
-        parser_error(p, "Se esperaba '=' o un operador unario '++' / '--'");
+        parser_error(p, "Se esperaba '=', operador unario '++' / '--' o llamada a proc '()'");
         free_ast(id_node);
     }
+}
+
+void parse_proc_call(Parser *p, token proc_tkn) {
+    match(p, TKN_LPAREN);
+
+    ASTNode *args[MAX_PARAMS];
+    int nargs = 0;
+
+    while (p->current_token.type != TKN_RPAREN && p->current_token.type != TKN_EOF) {
+        if (nargs >= MAX_PARAMS) {
+            parser_error(p, "Demasiados argumentos en llamada a proc");
+            break;
+        }
+        args[nargs] = parse_logical_or(p);
+        if (args[nargs]) {
+            analyze_semantic(args[nargs]);
+            nargs++;
+        }
+        if (p->current_token.type == TKN_COMMA) advance(p);
+    }
+    match(p, TKN_RPAREN);
+
+    if (!p->has_error && semantic_errors == 0)
+        gen_proc_call(proc_tkn.lexeme, args, nargs);
+
+    for (int i = 0; i < nargs; i++) free_ast(args[i]);
 }
 
 void parse_read(Parser *p) {
@@ -346,27 +376,71 @@ void parse_if(Parser *p) {
 void parse_proc(Parser *p) {
     match(p, TKN_PROC);
 
+    char proc_name[100] = "";
     if (p->current_token.type == TKN_IDENTIFIER) {
+        strncpy(proc_name, p->current_token.lexeme, 99);
         install_symbol(p->current_token.lexeme, TKN_IDENTIFIER, TKN_PROC);
         match(p, TKN_IDENTIFIER);
+    } else {
+        parser_error(p, "Se esperaba el nombre del proc");
+        return;
     }
-    
-    enter_scope();
 
+    int skip_lbl = new_label();
+    gen_jump(skip_lbl);
+
+    gen_proc_frame_enter();
+    gen_proc_prologue(proc_name);
+
+    enter_scope();
     match(p, TKN_LPAREN);
-    parse_parameters(p);
+
+    tokenType param_types[MAX_PARAMS];
+    int param_count = 0;
+    int int_idx = 0, float_idx = 0;
+
+    if (p->current_token.type != TKN_RPAREN) {
+        while (p->current_token.type != TKN_RPAREN && p->current_token.type != TKN_EOF) {
+            if (p->current_token.type == TKN_INT  || p->current_token.type == TKN_FLOAT ||
+                p->current_token.type == TKN_BOOL || p->current_token.type == TKN_STRING) {
+
+                token type_tkn = p->current_token;
+                advance(p);
+
+                if (p->current_token.type == TKN_IDENTIFIER) {
+                    install_symbol(p->current_token.lexeme, TKN_IDENTIFIER, type_tkn.type);
+                    if (param_count < MAX_PARAMS) {
+                        param_types[param_count++] = type_tkn.type;
+                        gen_proc_param(p->current_token.lexeme, type_tkn.type, int_idx, float_idx);
+                        if (type_tkn.type == TKN_FLOAT) float_idx++; else int_idx++;
+                    }
+                }
+                match(p, TKN_IDENTIFIER);
+            } else {
+                parser_error(p, "Se esperaba un tipo de parametro");
+                advance(p);
+            }
+            if (p->current_token.type == TKN_COMMA) advance(p);
+            else break;
+        }
+    }
 
     if (p->has_error) {
-        while (p->current_token.type != TKN_LBRACE && p->current_token.type != TKN_EOF) {
+        while (p->current_token.type != TKN_LBRACE && p->current_token.type != TKN_EOF)
             advance(p);
-        }
     } else {
         match(p, TKN_RPAREN);
     }
-    
+
+    register_proc(proc_name, param_types, param_count);
+
     parse_block(p);
-    
+
     exit_scope();
+    gen_proc_epilogue();
+    gen_proc_frame_exit();
+
+    gen_label(skip_lbl);
 }
 
 void parse_parameters(Parser *p) {

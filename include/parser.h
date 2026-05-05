@@ -34,6 +34,7 @@ void parse_for(Parser *p);
 void parse_while(Parser *p);
 void parse_if(Parser *p);
 void parse_proc(Parser *p);
+void parse_proc_call(Parser *p, token proc_tkn);
 
 // Bloques y parametros
 void parse_block(Parser *p);
