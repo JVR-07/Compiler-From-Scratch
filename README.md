@@ -19,13 +19,13 @@ Este es un proyecto educativo enfocado en la construcción de un compilador func
 
 ## 🛠️ Estado de las Fases
 
-| Fase | Descripción                         |     Estado     |
-| :--- | :---------------------------------- | :------------: |
-| 1    | **Análisis Léxico**                 |       ✅       |
-| 2    | **Análisis Sintáctico**             |       ✅       |
-| 3    | **Análisis Semántico**              |       ✅       |
-| 4    | **Generación de Código Intermedio** | 🏗️ En Progreso |
-| 5    | **Optimización de Código**          |  ⏳ Pendiente  |
+| Fase | Descripción                                     |    Estado    |
+| :--- | :---------------------------------------------- | :----------: |
+| 1    | **Análisis Léxico**                             |      ✅      |
+| 2    | **Análisis Sintáctico**                         |      ✅      |
+| 3    | **Análisis Semántico**                          |      ✅      |
+| 4    | **Generación de Código Intermedio/Ensamblador** |      ✅      |
+| 5    | **Optimización de Código**                      | ⏳ Pendiente |
 
 ---
 
@@ -66,11 +66,22 @@ Realiza la validación lógica del programa recorriendo el AST de forma _Bottom-
 - **Gestión de Ámbitos (Scoping):** Controla la visibilidad de variables mediante una tabla de símbolos jerárquica, permitiendo variables locales y globales.
 - **Detección de Errores:** Identifica variables no declaradas o usos inválidos de operadores.
 
+### 🔹 Fase 4: Generación de Código Ensamblador (x86-64)
+
+Genera código objeto ejecutable (`x86-64` usando sintaxis de Intel, enlazado directamente con la librería de C para I/O vía `printf`/`scanf`) "al vuelo" a medida que realiza el análisis.
+Se han implementado con éxito:
+
+1. **Operaciones aritméticas:** sumas, restas, multiplicaciones, divisiones y potencias en enteros y punto flotante (mediante las extensiones SSE `xmm`).
+2. **Entrada y Salida:** Palabras reservadas `read` y `write` con formatos apropiados según tipo.
+3. **Flujo de control:** Soporte para sentencias `if`/`else`, ciclos `while` y `for`.
+4. **Procedimientos (`proc`):** Definición de funciones con parámetros (usando convención de llamada ABI x86-64 con `rdi`, `rsi`...) e invocaciones a funciones propias.
+5. **Operadores lógicos y relacionales:** Comparaciones entre todo tipo de datos y operaciones booleanas `&&` y `||`.
+
 ---
 
-## 🏗️ Siguiente Paso: Fase 4 - Generación de Código Intermedio
+## 🏗️ Siguiente Paso: Fase 5 - Optimización de Código
 
-En esta etapa, el compilador transformará el AST validado en una representación intermedia, usualmente **Código de Tres Direcciones (TAC)**. Esta representación es independiente de la arquitectura destino y facilita la optimización posterior.
+La siguiente etapa consistirá en aplicar técnicas de optimización, como el plegado de constantes, para emitir un código más eficiente y reducir las instrucciones redundantes.
 
 ---
 
