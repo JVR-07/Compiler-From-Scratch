@@ -4,20 +4,35 @@
 #include <stdarg.h>
 #include "codegen.h"
 #include "tokens.h"
-#define MAX_VARS 200
+#define MAX_VARS  200
+#define MAX_PROCS 20
 
 typedef struct {
     char      name[100];
-    int       offset;   
-    tokenType type;     
+    int       offset;
+    tokenType type;
 } VarEntry;
 
-static VarEntry var_table[MAX_VARS];
-static int      var_count    = 0;
-static int      current_off  = 0;
-static int      label_count  = 0;
+typedef struct {
+    char      name[100];
+    tokenType param_types[MAX_PARAMS];
+    int       param_count;
+} ProcEntry;
+
+static VarEntry  var_table[MAX_VARS];
+static int       var_count   = 0;
+static int       current_off = 0;
+static int       label_count = 0;
+
+static ProcEntry proc_table[MAX_PROCS];
+static int       proc_count  = 0;
+
+static VarEntry  saved_var_table[MAX_VARS];
+static int       saved_var_count  = 0;
+static int       saved_current_off = 0;
 
 int codegen_errors = 0;
+
 
 void codegen_error(int line, const char *msg, const char *detail) {
     if (line > 0)
@@ -139,6 +154,88 @@ void gen_label(int lbl) {
     emit(".L%d:", lbl);
 }
 
+static const char *int_arg_regs32[] = {"edi","esi","edx","ecx","r8d","r9d"};
+static const char *int_arg_regs64[] = {"rdi","rsi","rdx","rcx","r8", "r9" };
+
+void register_proc(const char *name, tokenType *param_types, int param_count) {
+    if (proc_count >= MAX_PROCS) return;
+    ProcEntry *e = &proc_table[proc_count++];
+    strncpy(e->name, name, 99); e->name[99] = '\0';
+    e->param_count = param_count < MAX_PARAMS ? param_count : MAX_PARAMS;
+    for (int i = 0; i < e->param_count; i++) e->param_types[i] = param_types[i];
+}
+
+int get_proc_param_count(const char *name) {
+    for (int i = 0; i < proc_count; i++)
+        if (strcmp(proc_table[i].name, name) == 0) return proc_table[i].param_count;
+    return -1;
+}
+
+tokenType get_proc_param_type(const char *name, int idx) {
+    for (int i = 0; i < proc_count; i++)
+        if (strcmp(proc_table[i].name, name) == 0) return proc_table[i].param_types[idx];
+    return TKN_ERROR;
+}
+
+void gen_proc_frame_enter() {
+    memcpy(saved_var_table, var_table, sizeof(VarEntry) * var_count);
+    saved_var_count   = var_count;
+    saved_current_off = current_off;
+    var_count   = 0;
+    current_off = 0;
+}
+
+void gen_proc_frame_exit() {
+    memcpy(var_table, saved_var_table, sizeof(VarEntry) * saved_var_count);
+    var_count   = saved_var_count;
+    current_off = saved_current_off;
+}
+
+void gen_proc_prologue(const char *name) {
+    emit("%s:", name);
+    emit("    push    rbp");
+    emit("    mov     rbp, rsp");
+    emit("    sub     rsp, 512");
+}
+
+void gen_proc_epilogue() {
+    emit("    leave");
+    emit("    ret");
+}
+
+void gen_proc_param(const char *name, tokenType type, int int_idx, int float_idx) {
+    int offset = alloc_var(name, type);
+    if (type == TKN_FLOAT) {
+        emit("    movsd   QWORD PTR [rbp%d], xmm%d", offset, float_idx);
+    } else {
+        if (int_idx >= MAX_PARAMS) {
+            codegen_error(0, "Demasiados parametros enteros (max 6).", name);
+            return;
+        }
+        emit("    mov     DWORD PTR [rbp%d], %s", offset, int_arg_regs32[int_idx]);
+    }
+}
+
+void gen_proc_call(const char *name, ASTNode **args, int nargs) {
+    int n = get_proc_param_count(name);
+    if (n < 0) { codegen_error(0, "Proc no registrado:", name); return; }
+    if (nargs != n) { codegen_error(0, "Numero incorrecto de argumentos al llamar:", name); return; }
+
+    for (int i = 0; i < nargs; i++) {
+        tokenType ptype = get_proc_param_type(name, i);
+        gen_expr(args[i]);
+        if (ptype == TKN_FLOAT) { emit("    sub     rsp, 8"); emit("    movsd   QWORD PTR [rsp], xmm0"); }
+        else                    { emit("    push    rax"); }
+    }
+
+    int ii = 0, fi = 0;
+    for (int i = nargs - 1; i >= 0; i--) {
+        tokenType ptype = get_proc_param_type(name, i);
+        if (ptype == TKN_FLOAT) { emit("    movsd   xmm%d, QWORD PTR [rsp]", fi++); emit("    add     rsp, 8"); }
+        else                    { emit("    pop     %s", int_arg_regs64[ii++]); }
+    }
+    emit("    call    %s", name);
+}
 
 
 char* gen_expr(ASTNode *node) {

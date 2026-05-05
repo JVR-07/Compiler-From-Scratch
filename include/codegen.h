@@ -22,10 +22,22 @@ void emit(const char *fmt, ...);
 
 void codegen_error(int line, const char *msg, const char *detail);
 
-// Control de flujo: usadas por el parser para if/while/for
-// sin que el parser emita assembly directamente.
-void gen_cond_jump(ASTNode *cond, int lbl_false);  // evalua cond, salta si es 0
-void gen_jump(int lbl);                             // salto incondicional
-void gen_label(int lbl);                            // emite etiqueta .Lx:
+void gen_cond_jump(ASTNode *cond, int lbl_false);
+void gen_jump(int lbl);
+void gen_label(int lbl);
+
+#define MAX_PARAMS 6
+
+void gen_proc_frame_enter();
+void gen_proc_frame_exit();
+void gen_proc_prologue(const char *name);
+void gen_proc_epilogue();
+void gen_proc_param(const char *name, tokenType type, int int_idx, int float_idx);
+
+void register_proc(const char *name, tokenType *param_types, int param_count);
+int  get_proc_param_count(const char *name);
+tokenType get_proc_param_type(const char *name, int idx);
+
+void gen_proc_call(const char *name, ASTNode **args, int nargs);
 
 #endif
