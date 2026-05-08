@@ -191,7 +191,7 @@ void gen_proc_frame_enter() {
   saved_var_count = var_count;
   saved_current_off = current_off;
   var_count = 0;
-  current_off = 0;
+  current_off = -128;
 }
 
 void gen_proc_frame_exit() {
@@ -205,6 +205,18 @@ void gen_proc_prologue(const char *name) {
   emit("    push    rbp");
   emit("    mov     rbp, rsp");
   emit("    sub     rsp, 4096");
+  emit("    mov     QWORD PTR [rbp-8], rdi");
+  emit("    mov     QWORD PTR [rbp-16], rsi");
+  emit("    mov     QWORD PTR [rbp-24], rdx");
+  emit("    mov     QWORD PTR [rbp-32], rcx");
+  emit("    mov     QWORD PTR [rbp-40], r8");
+  emit("    mov     QWORD PTR [rbp-48], r9");
+  emit("    movsd   QWORD PTR [rbp-56], xmm0");
+  emit("    movsd   QWORD PTR [rbp-64], xmm1");
+  emit("    movsd   QWORD PTR [rbp-72], xmm2");
+  emit("    movsd   QWORD PTR [rbp-80], xmm3");
+  emit("    movsd   QWORD PTR [rbp-88], xmm4");
+  emit("    movsd   QWORD PTR [rbp-96], xmm5");
 }
 
 void gen_proc_epilogue() {
@@ -216,13 +228,17 @@ void gen_proc_param(const char *name, tokenType type, int int_idx,
                     int float_idx) {
   int offset = alloc_var(name, type);
   if (type == TKN_FLOAT) {
-    emit("    movsd   QWORD PTR [rbp%d], xmm%d", offset, float_idx);
+    emit("    movsd   xmm0, QWORD PTR [rbp-%d]", 56 + float_idx * 8);
+    emit("    movsd   QWORD PTR [rbp%d], xmm0", offset);
+  } else if (type == TKN_STRING) {
+    emit("    mov     rsi, QWORD PTR [rbp-%d]", 8 + int_idx * 8);
+    emit("    lea     rdi, [rbp%d]", offset);
+    emit("    sub     rsp, 8");
+    emit("    call    strcpy");
+    emit("    add     rsp, 8");
   } else {
-    if (int_idx >= MAX_PARAMS) {
-      codegen_error(0, "Demasiados parametros enteros (max 6).", name);
-      return;
-    }
-    emit("    mov     DWORD PTR [rbp%d], %s", offset, int_arg_regs32[int_idx]);
+    emit("    mov     eax, DWORD PTR [rbp-%d]", 8 + int_idx * 8);
+    emit("    mov     DWORD PTR [rbp%d], eax", offset);
   }
 }
 
@@ -237,10 +253,23 @@ void gen_proc_call(const char *name, ASTNode **args, int nargs) {
     return;
   }
 
+  int arg_int_idx[MAX_PARAMS];
+  int arg_float_idx[MAX_PARAMS];
+  int t_int = 0, t_float = 0;
+  for (int i = 0; i < nargs; i++) {
+    tokenType ptype = get_proc_param_type(name, i);
+    if (ptype == TKN_FLOAT)
+      arg_float_idx[i] = t_float++;
+    else
+      arg_int_idx[i] = t_int++;
+  }
+
   for (int i = 0; i < nargs; i++) {
     tokenType ptype = get_proc_param_type(name, i);
     gen_expr(args[i]);
     if (ptype == TKN_FLOAT) {
+      if (!is_float(args[i]->eval_type))
+        emit("    cvtsi2sd xmm0, eax");
       emit("    sub     rsp, 8");
       emit("    movsd   QWORD PTR [rsp], xmm0");
     } else {
@@ -248,14 +277,13 @@ void gen_proc_call(const char *name, ASTNode **args, int nargs) {
     }
   }
 
-  int ii = 0, fi = 0;
   for (int i = nargs - 1; i >= 0; i--) {
     tokenType ptype = get_proc_param_type(name, i);
     if (ptype == TKN_FLOAT) {
-      emit("    movsd   xmm%d, QWORD PTR [rsp]", fi++);
+      emit("    movsd   xmm%d, QWORD PTR [rsp]", arg_float_idx[i]);
       emit("    add     rsp, 8");
     } else {
-      emit("    pop     %s", int_arg_regs64[ii++]);
+      emit("    pop     %s", int_arg_regs64[arg_int_idx[i]]);
     }
   }
   emit("    call    %s", name);
@@ -359,10 +387,13 @@ char *gen_expr(ASTNode *node) {
       emit("    add     rsp, 8");
     } else {
       gen_expr(node->right);
-      if (is_float(type))
+      if (is_float(type)) {
+        if (!is_float(node->right->eval_type))
+          emit("    cvtsi2sd xmm0, eax");
         emit("    movsd   QWORD PTR [rbp%d], xmm0", offset);
-      else
+      } else {
         emit("    mov     DWORD PTR [rbp%d], eax", offset);
+      }
     }
 
     return "eax";
@@ -400,9 +431,13 @@ char *gen_expr(ASTNode *node) {
 
     if (use_float) {
       gen_expr(node->left);
+      if (!is_float(node->left->eval_type))
+        emit("    cvtsi2sd xmm0, eax");
       emit("    sub     rsp, 8");
       emit("    movsd   QWORD PTR [rsp], xmm0");
       gen_expr(node->right);
+      if (!is_float(node->right->eval_type))
+        emit("    cvtsi2sd xmm0, eax");
       emit("    movsd   xmm1, xmm0");
       emit("    movsd   xmm0, QWORD PTR [rsp]");
       emit("    add     rsp, 8");
