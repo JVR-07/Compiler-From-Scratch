@@ -1,0 +1,11 @@
+write "Conteo ascendente del 1 al 5:";
+for int k = 1, k <= 5, k++ {
+    write k;
+};
+
+write "Tabla del 3:";
+for int j = 1, j <= 10, j++ {
+    write j * 3;
+};
+
+write "Fin del for";

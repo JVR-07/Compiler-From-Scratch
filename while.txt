@@ -1,0 +1,17 @@
+int contador = 1;
+
+while contador <= 5 {
+    write contador;
+    contador++;
+};
+
+write "Fin del while";
+
+int suma = 0;
+int i = 1;
+while i <= 10 {
+    suma = suma + i;
+    i++;
+};
+write "Suma del 1 al 10:";
+write suma;

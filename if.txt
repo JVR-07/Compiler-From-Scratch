@@ -1,0 +1,20 @@
+int x = 10;
+int y = 20;
+
+if x < y {
+    write "x es menor que y";
+} else {
+    write "x es mayor o igual que y";
+};
+
+bool activo = true;
+
+if activo {
+    write "El sistema esta activo";
+};
+
+if x == 10 {
+    write "x vale exactamente 10";
+} else {
+    write "x no vale 10";
+};

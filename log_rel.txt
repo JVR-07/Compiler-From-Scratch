@@ -1,0 +1,22 @@
+int a = 10;
+int b = 5;
+float x = 2.5;
+float y = 3.5;
+bool v = true;
+bool f = false;
+
+write "Testing int comparisons (10 and 5):";
+write a == b;
+write a != b;
+write a < b;
+write a > b;
+
+write "Testing float comparisons (2.5 and 3.5):";
+write x == y;
+write x != y;
+write x < y;
+write x > y;
+
+write "Testing logical operators (true and false):";
+write v && f;
+write v || f;

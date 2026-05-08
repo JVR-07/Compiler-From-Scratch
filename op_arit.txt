@@ -1,0 +1,19 @@
+int a = -10;
+int b = 3;
+float c = 1.5;
+string d = "Hola";
+int suma = a + b;
+string concatenar = d + "Mundo";
+int resta = a - b;
+int producto = a * b;
+int division = a / b;
+int potencia = 2 ^ 4;
+int anidado = a + b * 2;
+
+a++;
+b--;
+d++;
+
+bool bandera = true;
+bool negado = !bandera;
+bool falso = false;
