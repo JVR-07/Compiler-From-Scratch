@@ -298,8 +298,14 @@ void parse_for(Parser *p) {
 
     if (cond && !p->has_error) {
         analyze_semantic(cond);
-        if (semantic_errors == 0)
-            gen_cond_jump(cond, lbl_end);
+        if (semantic_errors == 0) {
+            if (cond->eval_type != TKN_BOOL) {
+                printf("\n\033[1;31mError Sem\u00e1ntico\033[0m [L\u00ednea %d]: La condici\u00f3n del 'for' debe ser de tipo bool, se obtuvo tipo incompatible.\n", cond->t.line);
+                semantic_errors++;
+            } else {
+                gen_cond_jump(cond, lbl_end);
+            }
+        }
         free_ast(cond);
     }
 
@@ -330,8 +336,14 @@ void parse_while(Parser *p) {
 
     if (cond && !p->has_error) {
         analyze_semantic(cond);
-        if (semantic_errors == 0)
-            gen_cond_jump(cond, lbl_end);
+        if (semantic_errors == 0) {
+            if (cond->eval_type != TKN_BOOL) {
+                printf("\n\033[1;31mError Sem\u00e1ntico\033[0m [L\u00ednea %d]: La condici\u00f3n del 'while' debe ser de tipo bool, se obtuvo tipo incompatible.\n", cond->t.line);
+                semantic_errors++;
+            } else {
+                gen_cond_jump(cond, lbl_end);
+            }
+        }
         free_ast(cond);
     } else if (p->current_token.type == TKN_LBRACE) {
         parser_error(p, "Se esperaba una condicion en while");
@@ -353,8 +365,14 @@ void parse_if(Parser *p) {
 
     if (cond && !p->has_error) {
         analyze_semantic(cond);
-        if (semantic_errors == 0)
-            gen_cond_jump(cond, lbl_else);
+        if (semantic_errors == 0) {
+            if (cond->eval_type != TKN_BOOL) {
+                printf("\n\033[1;31mError Sem\u00e1ntico\033[0m [L\u00ednea %d]: La condici\u00f3n del 'if' debe ser de tipo bool, se obtuvo tipo incompatible.\n", cond->t.line);
+                semantic_errors++;
+            } else {
+                gen_cond_jump(cond, lbl_else);
+            }
+        }
         free_ast(cond);
     } else if (p->current_token.type == TKN_LBRACE) {
         parser_error(p, "Se esperaba una condicion en if");

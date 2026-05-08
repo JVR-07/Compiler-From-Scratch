@@ -72,7 +72,10 @@ int alloc_var(const char *name, tokenType type) {
         return 0;
     }
 
-    int size = (type == TKN_FLOAT) ? 8 : 4;
+    int size;
+    if (type == TKN_FLOAT)  size = 8;
+    else if (type == TKN_STRING) size = 256;
+    else                    size = 4;
     current_off -= size;
 
     VarEntry entry;
@@ -117,6 +120,10 @@ void init_codegen() {
     emit("    .string \"%%d\"");
     emit("fmt_read_float:");
     emit("    .string \"%%lf\"");
+    emit("fmt_read_str:");
+    emit("    .string \"%%255s\"");
+    emit("str_tmp_concat:");
+    emit("    .space 512");
     emit("");
     emit("    .section .text");
     emit("    .global main");
@@ -124,7 +131,7 @@ void init_codegen() {
     emit("main:");
     emit("    push    rbp");
     emit("    mov     rbp, rsp");
-    emit("    sub     rsp, 512");
+    emit("    sub     rsp, 4096");
     emit("");
     emit("    # === inicio del programa ===");
     emit("");
@@ -195,7 +202,7 @@ void gen_proc_prologue(const char *name) {
     emit("%s:", name);
     emit("    push    rbp");
     emit("    mov     rbp, rsp");
-    emit("    sub     rsp, 512");
+    emit("    sub     rsp, 4096");
 }
 
 void gen_proc_epilogue() {
@@ -303,6 +310,10 @@ char* gen_expr(ASTNode *node) {
                 emit("    movsd   xmm0, QWORD PTR [rbp%d]", offset);
                 return "xmm0";
             }
+            if (type == TKN_STRING) {
+                emit("    lea     rax, [rbp%d]", offset);
+                return "rax";
+            }
             emit("    mov     eax, DWORD PTR [rbp%d]", offset);
             return "eax";
         }
@@ -313,8 +324,6 @@ char* gen_expr(ASTNode *node) {
                 return "eax";
             }
 
-            gen_expr(node->right);
-
             const char *var_name = node->left->t.lexeme;
             tokenType type       = get_var_type(var_name);
             int offset           = get_var_offset(var_name);
@@ -324,10 +333,20 @@ char* gen_expr(ASTNode *node) {
                 return "eax";
             }
 
-            if (is_float(type))
-                emit("    movsd   QWORD PTR [rbp%d], xmm0", offset);
-            else
-                emit("    mov     DWORD PTR [rbp%d], eax", offset);
+            if (type == TKN_STRING) {
+                gen_expr(node->right);
+                emit("    mov     rsi, rax");
+                emit("    lea     rdi, [rbp%d]", offset);
+                emit("    sub     rsp, 8");
+                emit("    call    strcpy");
+                emit("    add     rsp, 8");
+            } else {
+                gen_expr(node->right);
+                if (is_float(type))
+                    emit("    movsd   QWORD PTR [rbp%d], xmm0", offset);
+                else
+                    emit("    mov     DWORD PTR [rbp%d], eax", offset);
+            }
 
             return "eax";
         }
@@ -336,6 +355,26 @@ char* gen_expr(ASTNode *node) {
             if (!node->left || !node->right) {
                 codegen_error(node->t.line, "Operacion binaria con hijos nulos.", NULL);
                 return "eax";
+            }
+
+            if (node->eval_type == TKN_STRING) {
+                gen_expr(node->left);
+                emit("    push    rax");
+                gen_expr(node->right);
+                emit("    push    rax");
+                emit("    mov     rsi, QWORD PTR [rsp+8]");
+                emit("    lea     rdi, [rip + str_tmp_concat]");
+                emit("    sub     rsp, 8");
+                emit("    call    strcpy");
+                emit("    add     rsp, 8");
+                emit("    mov     rsi, QWORD PTR [rsp]");
+                emit("    lea     rdi, [rip + str_tmp_concat]");
+                emit("    sub     rsp, 8");
+                emit("    call    strcat");
+                emit("    add     rsp, 8");
+                emit("    add     rsp, 16");
+                emit("    lea     rax, [rip + str_tmp_concat]");
+                return "rax";
             }
 
             int use_float = is_float(node->eval_type)        ||
@@ -471,10 +510,36 @@ char* gen_expr(ASTNode *node) {
                     return "eax";
                 }
 
-                if (node->t.type == TKN_SELF_PLUS)
-                    emit("    add     DWORD PTR [rbp%d], 1", offset);
-                else
-                    emit("    sub     DWORD PTR [rbp%d], 1", offset);
+                if (type == TKN_STRING) {
+                    emit("    lea     rsi, [rbp%d]", offset);
+                    emit("    lea     rdi, [rip + str_tmp_concat]");
+                    emit("    sub     rsp, 8");
+                    emit("    call    strcpy");
+                    emit("    add     rsp, 8");
+                    emit("    lea     rsi, [rip + str_tmp_concat]");
+                    emit("    lea     rdi, [rbp%d]", offset);
+                    emit("    sub     rsp, 8");
+                    emit("    call    strcat");
+                    emit("    add     rsp, 8");
+                } else if (type == TKN_FLOAT) {
+                    int lbl = new_label();
+                    emit("    .section .rodata");
+                    emit(".flt_%d:", lbl);
+                    emit("    .double 1.0");
+                    emit("    .section .text");
+                    emit("    movsd   xmm0, QWORD PTR [rbp%d]", offset);
+                    emit("    movsd   xmm1, QWORD PTR [rip + .flt_%d]", lbl);
+                    if (node->t.type == TKN_SELF_PLUS)
+                        emit("    addsd   xmm0, xmm1");
+                    else
+                        emit("    subsd   xmm0, xmm1");
+                    emit("    movsd   QWORD PTR [rbp%d], xmm0", offset);
+                } else {
+                    if (node->t.type == TKN_SELF_PLUS)
+                        emit("    add     DWORD PTR [rbp%d], 1", offset);
+                    else
+                        emit("    sub     DWORD PTR [rbp%d], 1", offset);
+                }
 
             } else if (node->t.type == TKN_NOT) {
                 if (!node->left) {
@@ -540,6 +605,11 @@ char* gen_expr(ASTNode *node) {
             } else if (type == TKN_FLOAT) {
                 emit("    lea     rsi, [rbp%d]", offset);
                 emit("    lea     rdi, [rip + fmt_read_float]");
+                emit("    mov     eax, 0");
+                emit("    call    scanf");
+            } else if (type == TKN_STRING) {
+                emit("    lea     rsi, [rbp%d]", offset);
+                emit("    lea     rdi, [rip + fmt_read_str]");
                 emit("    mov     eax, 0");
                 emit("    call    scanf");
             } else {
