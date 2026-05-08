@@ -61,7 +61,14 @@ void validate_node(ASTNode *node) {
             }
             else if (node->t.type == TKN_SELF_PLUS || node->t.type == TKN_SELF_MINUS) {
 
-                if (operand_type != TKN_INT && operand_type != TKN_FLOAT && operand_type != TKN_ERROR) {
+                if (node->t.type == TKN_SELF_MINUS && operand_type == TKN_STRING) {
+                    semantic_error(node->t.line, "Operación -- no está soportada para tipo string:", node->t.lexeme);
+                    node->eval_type = TKN_ERROR;
+                } else if (operand_type == TKN_BOOL) {
+                    semantic_error(node->t.line, "Operación unaria ++/-- no soportada para tipo bool:", node->t.lexeme);
+                    node->eval_type = TKN_ERROR;
+                } else if (operand_type != TKN_INT && operand_type != TKN_FLOAT &&
+                           operand_type != TKN_STRING && operand_type != TKN_ERROR) {
                     semantic_error(node->t.line, "Operación unaria iterativa ++/-- sobre tipo no numérico.", node->t.lexeme);
                     node->eval_type = TKN_ERROR;
                 } else {
@@ -111,6 +118,16 @@ void validate_node(ASTNode *node) {
                 
                     node->eval_type = TKN_STRING; 
                 
+                } else if (leftType == TKN_STRING || rightType == TKN_STRING) {
+
+                    semantic_error(node->t.line, "Operación aritmética no válida con tipo string:", node->t.lexeme);
+                    node->eval_type = TKN_ERROR;
+
+                } else if (leftType == TKN_BOOL || rightType == TKN_BOOL) {
+
+                    semantic_error(node->t.line, "Operación aritmética no válida con tipo bool:", node->t.lexeme);
+                    node->eval_type = TKN_ERROR;
+
                 } else {
                     
                     semantic_error(node->t.line, "Tipos incompatibles en operación aritmética:", node->t.lexeme);
@@ -119,8 +136,26 @@ void validate_node(ASTNode *node) {
             } else if (node->t.type == TKN_GREATER || node->t.type == TKN_LESS || 
                        node->t.type == TKN_GREATER_EQUAL || node->t.type == TKN_LESS_EQUAL || 
                        node->t.type == TKN_EQUAL || node->t.type == TKN_NOT_EQUAL) {
-            
-                node->eval_type = TKN_BOOL;
+
+                int left_ok  = (leftType  == TKN_INT || leftType  == TKN_FLOAT || leftType  == TKN_BOOL || leftType  == TKN_STRING);
+                int right_ok = (rightType == TKN_INT || rightType == TKN_FLOAT || rightType == TKN_BOOL || rightType == TKN_STRING);
+
+                int compatible = (leftType == rightType) ||
+                                 ((leftType  == TKN_INT || leftType  == TKN_FLOAT) &&
+                                  (rightType == TKN_INT || rightType == TKN_FLOAT));
+
+                int relational_only = (node->t.type == TKN_GREATER || node->t.type == TKN_LESS ||
+                                       node->t.type == TKN_GREATER_EQUAL || node->t.type == TKN_LESS_EQUAL);
+
+                if (!left_ok || !right_ok || !compatible) {
+                    semantic_error(node->t.line, "Tipos incompatibles en comparación:", node->t.lexeme);
+                    node->eval_type = TKN_ERROR;
+                } else if (relational_only && (leftType == TKN_BOOL || leftType == TKN_STRING)) {
+                    semantic_error(node->t.line, "Operador relacional (<, >, <=, >=) no soportado para tipo bool o string:", node->t.lexeme);
+                    node->eval_type = TKN_ERROR;
+                } else {
+                    node->eval_type = TKN_BOOL;
+                }
             }
 
             break;
