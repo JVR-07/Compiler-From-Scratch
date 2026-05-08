@@ -1,5 +1,0 @@
-string x = "Juan";
-string y = "Ana";
-
-write x;
-read y;
